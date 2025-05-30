@@ -10,7 +10,7 @@ services:
       - YOUTUBE_COOKIES_PATH=/app/cookies.txt
     volumes:
       - /tmp:/tmp
-      - ./cookies.txt:/app/cookies.txt:ro
+      - ./cookies.txt:/app/cookies.txt
     depends_on:
       - redis
     restart: unless-stopped
