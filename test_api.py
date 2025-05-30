@@ -8,11 +8,13 @@ import time
 
 # API base URL
 BASE_URL = "http://localhost:8000"  # Change to http://your-server:8080 if using nginx
+# For your server, use: BASE_URL = "http://your-server-ip:8000"
 
-# Test URLs (replace with actual test URLs)
+# Test URLs with actual working examples
 TEST_URLS = {
-    "youtube_short": "https://www.youtube.com/shorts/N8tJFeMXrr8",  # Replace with actual URL
-    "instagram_reel": "https://www.instagram.com/reel/DKRCV3gJIFZ",  # Replace with actual URL
+    "youtube_short": "https://www.youtube.com/shorts/dQw4w9WgXcQ",  # Rick Roll short version
+    "youtube_short_2": "https://youtu.be/dQw4w9WgXcQ",  # Alternative format
+    # Note: Instagram URLs may require authentication, use public reels
 }
 
 def test_health_check():
@@ -93,20 +95,19 @@ def test_audio_extraction(url, save_file=False):
 
 def test_rate_limiting():
     """Test rate limiting"""
-    print("Testing rate limiting (making rapid requests)...")
+    print("Testing rate limiting (using health endpoint for rapid requests)...")
     
-    payload = {
-        "url": "https://youtube.com/shorts/invalid",  # Invalid URL for quick response
-        "format": "mp3"
-    }
-    
-    for i in range(5):
-        response = requests.post(f"{BASE_URL}/extract-audio-info", json=payload)
+    # Use health endpoint for rate limit testing (safer than invalid URLs)
+    for i in range(12):  # Exceed the 10/min limit
+        response = requests.get(f"{BASE_URL}/health")
         print(f"Request {i+1}: Status {response.status_code}")
         
         if response.status_code == 429:
             print("Rate limit reached (as expected)")
             break
+        
+        # Small delay to avoid overwhelming
+        time.sleep(0.1)
     
     print("-" * 50)
 
@@ -145,15 +146,19 @@ def main():
     # Rate limiting test
     test_rate_limiting()
     
-    # Note: Actual URL tests commented out - replace with real URLs to test
-    print("NOTE: To test with real URLs, update the TEST_URLS dictionary")
-    print("with actual YouTube Shorts or Instagram Reels URLs")
+    # Test with real URLs
+    print("\n" + "=" * 60)
+    print("TESTING WITH REAL URLs")
+    print("=" * 60)
     
-    # Uncomment these lines and add real URLs to test actual extraction
-    # for platform, url in TEST_URLS.items():
-    #     print(f"\nTesting {platform}:")
-    #     test_audio_info(url)
-    #     test_audio_extraction(url, save_file=True)
+    for platform, url in TEST_URLS.items():
+        print(f"\nTesting {platform}:")
+        test_audio_info(url)
+        test_audio_extraction(url, save_file=True)
+        
+    print("\n" + "=" * 60)
+    print("ALL TESTS COMPLETED")
+    print("=" * 60)
 
 if __name__ == "__main__":
     main() 
