@@ -99,16 +99,18 @@ def get_ydl_opts(output_format: str = "mp3", quality: str = "192", cookies_path:
     if cookies_path and os.path.exists(cookies_path):
         opts['cookiefile'] = cookies_path
         logger.info(f"Using cookies from: {cookies_path}")
-    elif os.getenv('YOUTUBE_COOKIES_PATH') and os.path.exists(os.getenv('YOUTUBE_COOKIES_PATH')):
-        opts['cookiefile'] = os.getenv('YOUTUBE_COOKIES_PATH')
-        logger.info(f"Using cookies from environment: {os.getenv('YOUTUBE_COOKIES_PATH')}")
-    else:
-        # Try to use browser cookies as fallback
-        try:
-            opts['cookiesfrombrowser'] = ('chrome',)
-            logger.info("Attempting to use Chrome browser cookies")
-        except:
+    elif os.getenv('YOUTUBE_COOKIES_PATH'):
+        env_cookies_path = os.getenv('YOUTUBE_COOKIES_PATH')
+        logger.info(f"Environment YOUTUBE_COOKIES_PATH set to: {env_cookies_path}")
+        if os.path.exists(env_cookies_path):
+            opts['cookiefile'] = env_cookies_path
+            logger.info(f"Using cookies from environment: {env_cookies_path}")
+        else:
+            logger.error(f"Cookies file not found at environment path: {env_cookies_path}")
             logger.warning("No cookies available - may encounter bot detection on some videos")
+    else:
+        logger.warning("No cookies path provided - may encounter bot detection on some videos")
+        logger.info("Tip: Set YOUTUBE_COOKIES_PATH environment variable to use cookies")
     
     return opts
 
