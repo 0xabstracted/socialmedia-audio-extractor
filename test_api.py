@@ -12,9 +12,8 @@ BASE_URL = "http://localhost:8000"  # Change to http://your-server:8080 if using
 
 # Test URLs with actual working examples
 TEST_URLS = {
-    "youtube_short": "https://www.youtube.com/shorts/dQw4w9WgXcQ",  # Rick Roll short version
-    "youtube_short_2": "https://youtu.be/dQw4w9WgXcQ",  # Alternative format
-    # Note: Instagram URLs may require authentication, use public reels
+    "youtube_short": "https://www.youtube.com/shorts/N8tJFeMXrr8",  # Replace with actual URL
+    "instagram_reel": "https://www.instagram.com/reel/DKRCV3gJIFZ",  # Replace with actual URL
 }
 
 def test_health_check():
