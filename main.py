@@ -80,19 +80,39 @@ def get_ydl_opts(output_format: str = "mp3", quality: str = "192", cookies_path:
         'writeinfojson': False,
         'writethumbnail': False,
         
-        # Anti-bot protection measures
+        # Enhanced anti-bot protection measures
         'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'referer': 'https://www.youtube.com/',
-        'sleep_interval': 1,  # Add delay between requests
-        'max_sleep_interval': 5,
+        'sleep_interval': 2,  # Increased delay between requests
+        'max_sleep_interval': 8,
+        'sleep_interval_requests': 1,  # Add delay between HTTP requests
+        'sleep_interval_subtitles': 0,
         
-        # YouTube specific optimizations
+        # Additional headers to mimic browser behavior
+        'http_headers': {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-us,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+        },
+        
+        # YouTube specific optimizations  
         'extractor_args': {
             'youtube': {
                 'skip': ['dash', 'hls'],  # Skip complex formats
                 'player_skip': ['configs'],  # Skip some player configs that might trigger bot detection
+                'include_live_dash': False,  # Disable live dash which can trigger bot detection
+                'include_dash_manifest': False,  # Disable dash manifest
             }
-        }
+        },
+        
+        # Network and retry settings
+        'socket_timeout': 30,
+        'retries': 3,
+        'fragment_retries': 3,
+        'retry_sleep_functions': {'http': lambda n: 2 * n},  # Exponential backoff for retries
     }
     
     # Add cookies if available
@@ -115,10 +135,46 @@ def get_ydl_opts(output_format: str = "mp3", quality: str = "192", cookies_path:
     return opts
 
 async def extract_audio_async(url: str, output_format: str = "mp3", quality: str = "192") -> tuple[str, dict]:
-    """Asynchronously extract audio using yt-dlp"""
+    """Asynchronously extract audio using yt-dlp with fallback strategies"""
     
     def extract_audio():
-        ydl_opts = get_ydl_opts(output_format, quality)
+        # Try primary extraction method
+        try:
+            return _extract_with_config(url, output_format, quality, primary=True)
+        except Exception as e:
+            logger.warning(f"Primary extraction failed: {str(e)}")
+            
+            # For YouTube URLs, try alternative method
+            if 'youtube.com' in url or 'youtu.be' in url:
+                logger.info("Trying YouTube fallback extraction...")
+                try:
+                    return _extract_with_config(url, output_format, quality, primary=False)
+                except Exception as e2:
+                    logger.error(f"Fallback extraction also failed: {str(e2)}")
+                    raise e  # Re-raise original error
+            else:
+                raise e  # Re-raise original error for non-YouTube URLs
+
+    def _extract_with_config(url: str, output_format: str, quality: str, primary: bool = True) -> tuple[str, dict]:
+        """Extract with specific configuration"""
+        if primary:
+            ydl_opts = get_ydl_opts(output_format, quality)
+        else:
+            # Fallback configuration for YouTube with more conservative settings
+            ydl_opts = get_ydl_opts(output_format, quality)
+            ydl_opts.update({
+                'format': 'worstaudio/worst',  # Try lower quality first
+                'sleep_interval': 3,  # Even longer delays
+                'max_sleep_interval': 10,
+                'extractor_args': {
+                    'youtube': {
+                        'skip': ['dash', 'hls', 'live_dash'],
+                        'player_skip': ['configs', 'js'],
+                        'include_live_dash': False,
+                        'include_dash_manifest': False,
+                    }
+                }
+            })
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             # Extract info first
