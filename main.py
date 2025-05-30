@@ -50,6 +50,7 @@ class AudioExtractionRequest(BaseModel):
     url: HttpUrl
     format: str = "mp3"
     quality: str = "192"
+    return_url: bool = False  # If True, return download URL instead of binary data
 
 class AudioExtractionResponse(BaseModel):
     success: bool
@@ -246,6 +247,32 @@ async def health_check():
         "yt_dlp_version": yt_dlp.version.__version__
     }
 
+@app.get("/files/{filename}")
+async def serve_file(filename: str):
+    """Serve audio files for download"""
+    import os
+    from fastapi.responses import FileResponse
+    
+    # Security: Only allow mp3, wav, m4a files
+    allowed_extensions = ['.mp3', '.wav', '.m4a']
+    file_ext = os.path.splitext(filename)[1].lower()
+    
+    if file_ext not in allowed_extensions:
+        raise HTTPException(status_code=400, detail="File type not allowed")
+    
+    # Look for file in temp directory
+    temp_dir = tempfile.gettempdir()
+    file_path = os.path.join(temp_dir, filename)
+    
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    return FileResponse(
+        path=file_path,
+        filename=filename,
+        media_type="audio/mpeg"
+    )
+
 @app.post("/extract-audio")
 @limiter.limit("10/minute")
 async def extract_audio(
@@ -277,30 +304,47 @@ async def extract_audio(
         if not os.path.exists(audio_file_path):
             raise HTTPException(status_code=500, detail="Audio extraction failed")
         
-        # Read file as binary data
-        async with aiofiles.open(audio_file_path, 'rb') as f:
-            audio_data = await f.read()
-        
         # Get file info
-        file_size = len(audio_data)
+        file_size = os.path.getsize(audio_file_path)
         duration = info.get('duration', 0)
         title = info.get('title', 'audio')
         
-        # Schedule cleanup
-        background_tasks.add_task(cleanup_file, audio_file_path)
-        
         logger.info(f"Successfully extracted audio: {title} ({file_size} bytes)")
         
-        # Return binary data with appropriate headers
-        headers = {
-            "Content-Type": "audio/mpeg",
-            "Content-Disposition": f'attachment; filename="{title}.{extraction_request.format}"',
-            "X-Audio-Duration": str(duration),
-            "X-File-Size": str(file_size),
-            "X-Original-Title": title
-        }
-        
-        return Response(content=audio_data, headers=headers, media_type="audio/mpeg")
+        # Check if user wants URL instead of binary data
+        if extraction_request.return_url:
+            # Return download URL instead of binary data
+            filename = os.path.basename(audio_file_path)
+            download_url = f"/files/{filename}"
+            
+            # Don't schedule cleanup if returning URL
+            return {
+                "success": True,
+                "download_url": download_url,
+                "filename": filename,
+                "title": title,
+                "duration": duration,
+                "file_size": file_size,
+                "message": f"Audio extracted successfully. Download at: {download_url}"
+            }
+        else:
+            # Read file as binary data
+            async with aiofiles.open(audio_file_path, 'rb') as f:
+                audio_data = await f.read()
+            
+            # Schedule cleanup
+            background_tasks.add_task(cleanup_file, audio_file_path)
+            
+            # Return binary data with appropriate headers
+            headers = {
+                "Content-Type": "audio/mpeg",
+                "Content-Disposition": f'attachment; filename="{title}.{extraction_request.format}"',
+                "X-Audio-Duration": str(duration),
+                "X-File-Size": str(file_size),
+                "X-Original-Title": title
+            }
+            
+            return Response(content=audio_data, headers=headers, media_type="audio/mpeg")
         
     except Exception as e:
         logger.error(f"Error extracting audio from {url}: {str(e)}")
