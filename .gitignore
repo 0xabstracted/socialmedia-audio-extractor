@@ -144,6 +144,12 @@ tmp/
 test_*.mp3
 test_*.mp4
 
+# Sensitive cookie files - do not commit personal browser data
+cookies.txt
+cookies*.txt
+*.mhtml
+*.part
+
 # OS generated files
 .DS_Store
 .DS_Store?
