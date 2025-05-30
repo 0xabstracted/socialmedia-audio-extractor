@@ -7,7 +7,7 @@ import json
 import time
 
 # API base URL
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://localhost:8000"  # Change to http://your-server:8080 if using nginx
 
 # Test URLs (replace with actual test URLs)
 TEST_URLS = {
