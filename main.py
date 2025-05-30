@@ -59,11 +59,11 @@ class AudioExtractionResponse(BaseModel):
     file_size: Optional[int] = None
 
 # yt-dlp configuration
-def get_ydl_opts(output_format: str = "mp3", quality: str = "192") -> dict:
-    """Configure yt-dlp options for audio extraction"""
+def get_ydl_opts(output_format: str = "mp3", quality: str = "192", cookies_path: str = None) -> dict:
+    """Configure yt-dlp options for audio extraction with anti-bot protection"""
     temp_dir = tempfile.gettempdir()
     
-    return {
+    opts = {
         'format': 'bestaudio/best',
         'outtmpl': os.path.join(temp_dir, '%(title)s.%(ext)s'),
         'postprocessors': [{
@@ -79,7 +79,38 @@ def get_ydl_opts(output_format: str = "mp3", quality: str = "192") -> dict:
         'no_playlist': True,
         'writeinfojson': False,
         'writethumbnail': False,
+        
+        # Anti-bot protection measures
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'referer': 'https://www.youtube.com/',
+        'sleep_interval': 1,  # Add delay between requests
+        'max_sleep_interval': 5,
+        
+        # YouTube specific optimizations
+        'extractor_args': {
+            'youtube': {
+                'skip': ['dash', 'hls'],  # Skip complex formats
+                'player_skip': ['configs'],  # Skip some player configs that might trigger bot detection
+            }
+        }
     }
+    
+    # Add cookies if available
+    if cookies_path and os.path.exists(cookies_path):
+        opts['cookiefile'] = cookies_path
+        logger.info(f"Using cookies from: {cookies_path}")
+    elif os.getenv('YOUTUBE_COOKIES_PATH') and os.path.exists(os.getenv('YOUTUBE_COOKIES_PATH')):
+        opts['cookiefile'] = os.getenv('YOUTUBE_COOKIES_PATH')
+        logger.info(f"Using cookies from environment: {os.getenv('YOUTUBE_COOKIES_PATH')}")
+    else:
+        # Try to use browser cookies as fallback
+        try:
+            opts['cookiesfrombrowser'] = ('chrome',)
+            logger.info("Attempting to use Chrome browser cookies")
+        except:
+            logger.warning("No cookies available - may encounter bot detection on some videos")
+    
+    return opts
 
 async def extract_audio_async(url: str, output_format: str = "mp3", quality: str = "192") -> tuple[str, dict]:
     """Asynchronously extract audio using yt-dlp"""
@@ -234,11 +265,11 @@ async def extract_audio_info(
         )
     
     try:
-        ydl_opts = {
-            'quiet': True,
-            'no_warnings': True,
-            'no_playlist': True,
-        }
+        # Use the same anti-bot configuration for info extraction
+        ydl_opts = get_ydl_opts()
+        ydl_opts.update({
+            'skip_download': True,  # Don't download for info extraction
+        })
         
         def get_info():
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:

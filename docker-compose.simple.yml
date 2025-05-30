@@ -7,8 +7,10 @@ services:
       - "8000:8000"
     environment:
       - REDIS_URL=redis://redis:6379
+      # - YOUTUBE_COOKIES_PATH=/app/cookies.txt  # Uncomment and set path to cookies file
     volumes:
       - /tmp:/tmp
+      # - /path/to/your/cookies.txt:/app/cookies.txt:ro  # Uncomment and set your cookies path
     depends_on:
       - redis
     restart: unless-stopped
