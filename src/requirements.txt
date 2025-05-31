@@ -4,4 +4,4 @@ yt-dlp==2024.8.6
 aiofiles==23.2.1
 pydantic==2.5.0
 slowapi==0.1.9
-requests==2.31.0 
+requests>=2.32.2 
