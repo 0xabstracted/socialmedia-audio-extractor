@@ -96,22 +96,35 @@ def get_ydl_opts(output_format: str = "mp3", quality: str = "192", cookies_path:
         }
     }
     
-    # Add cookies if available
+    # Add cookies with fallback to default location
+    cookies_to_use = None
+    
     if cookies_path and os.path.exists(cookies_path):
-        opts['cookiefile'] = cookies_path
-        logger.info(f"Using cookies from: {cookies_path}")
+        cookies_to_use = cookies_path
+        logger.info(f"Using provided cookies from: {cookies_path}")
     elif os.getenv('YOUTUBE_COOKIES_PATH'):
         env_cookies_path = os.getenv('YOUTUBE_COOKIES_PATH')
         logger.info(f"Environment YOUTUBE_COOKIES_PATH set to: {env_cookies_path}")
         if os.path.exists(env_cookies_path):
-            opts['cookiefile'] = env_cookies_path
+            cookies_to_use = env_cookies_path
             logger.info(f"Using cookies from environment: {env_cookies_path}")
         else:
             logger.error(f"Cookies file not found at environment path: {env_cookies_path}")
-            logger.warning("No cookies available - may encounter bot detection on some videos")
     else:
-        logger.warning("No cookies path provided - may encounter bot detection on some videos")
-        logger.info("Tip: Set YOUTUBE_COOKIES_PATH environment variable to use cookies")
+        # Fallback to default cookies.txt in current directory
+        default_cookies_path = os.path.join(os.getcwd(), 'cookies.txt')
+        if os.path.exists(default_cookies_path):
+            cookies_to_use = default_cookies_path
+            logger.info(f"Using default cookies from: {default_cookies_path}")
+        else:
+            logger.warning("No cookies file found in any location")
+    
+    if cookies_to_use:
+        opts['cookiefile'] = cookies_to_use
+        logger.info(f"Cookies configured successfully: {cookies_to_use}")
+    else:
+        logger.warning("No cookies available - may encounter bot detection on some videos")
+        logger.info("Tip: Place cookies.txt in project directory or set YOUTUBE_COOKIES_PATH environment variable")
     
     return opts
 
