@@ -1,0 +1,313 @@
+{
+  "name": "YouTube Audio Extractor - Complete Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "youtube_url",
+              "value": "https://www.youtube.com/shorts/N8tJFeMXrr8"
+            },
+            {
+              "name": "api_base_url",
+              "value": "http://your-ec2-ip:8000"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set YouTube URL",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "httpVersion": "v2",
+        "method": "POST",
+        "url": "={{ $json.api_base_url }}/extract-audio-info",
+        "authentication": "none",
+        "requestFormat": "json",
+        "jsonParameters": true,
+        "parametersJson": {
+          "url": "={{ $json.youtube_url }}",
+          "format": "mp3",
+          "quality": "192"
+        },
+        "options": {
+          "timeout": 30000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          }
+        }
+      },
+      "name": "Get Video Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.success }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "Check if Video Info Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "httpVersion": "v2",
+        "method": "POST",
+        "url": "={{ $('Set YouTube URL').item.json.api_base_url }}/extract-audio",
+        "authentication": "none",
+        "requestFormat": "json",
+        "responseFormat": "file",
+        "jsonParameters": true,
+        "parametersJson": {
+          "url": "={{ $('Set YouTube URL').item.json.youtube_url }}",
+          "format": "mp3",
+          "quality": "192",
+          "return_url": false
+        },
+        "options": {
+          "timeout": 120000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          }
+        }
+      },
+      "name": "Extract Audio (Binary)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "httpVersion": "v2",
+        "method": "POST",
+        "url": "={{ $('Set YouTube URL').item.json.api_base_url }}/extract-audio",
+        "authentication": "none",
+        "requestFormat": "json",
+        "jsonParameters": true,
+        "parametersJson": {
+          "url": "={{ $('Set YouTube URL').item.json.youtube_url }}",
+          "format": "mp3",
+          "quality": "192",
+          "return_url": true
+        },
+        "options": {
+          "timeout": 120000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          }
+        }
+      },
+      "name": "Extract Audio (URL)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "errorMessage": "Failed to get video info. Error: {{ $json.detail || 'Unknown error' }}"
+      },
+      "name": "Stop on Error",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [680, 500]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "video_title",
+              "value": "={{ $('Get Video Info').item.json.title }}"
+            },
+            {
+              "name": "video_duration",
+              "value": "={{ $('Get Video Info').item.json.duration }}"
+            },
+            {
+              "name": "video_uploader",
+              "value": "={{ $('Get Video Info').item.json.uploader }}"
+            },
+            {
+              "name": "extraction_method",
+              "value": "={{ $('Get Video Info').item.json.extraction_method || 'standard' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Process Video Info",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "httpVersion": "v2",
+        "method": "GET",
+        "url": "={{ $('Set YouTube URL').item.json.api_base_url }}{{ $json.download_url }}",
+        "authentication": "none",
+        "responseFormat": "file",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "name": "Download Audio File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "final_status",
+              "value": "Audio extraction completed successfully"
+            },
+            {
+              "name": "video_title",
+              "value": "={{ $('Get Video Info').item.json.title }}"
+            },
+            {
+              "name": "file_size_binary",
+              "value": "={{ $('Extract Audio (Binary)').item.binary.data ? 'Binary data available' : 'No binary data' }}"
+            },
+            {
+              "name": "download_url",
+              "value": "={{ $('Extract Audio (URL)').item.json.download_url || 'No URL available' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Final Results",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    }
+  ],
+  "connections": {
+    "Set YouTube URL": {
+      "main": [
+        [
+          {
+            "node": "Get Video Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Video Info": {
+      "main": [
+        [
+          {
+            "node": "Check if Video Info Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Video Info Success": {
+      "main": [
+        [
+          {
+            "node": "Extract Audio (Binary)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract Audio (URL)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop on Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Audio (Binary)": {
+      "main": [
+        [
+          {
+            "node": "Process Video Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Audio (URL)": {
+      "main": [
+        [
+          {
+            "node": "Download Audio File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Video Info": {
+      "main": [
+        [
+          {
+            "node": "Final Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Audio File": {
+      "main": [
+        [
+          {
+            "node": "Final Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "youtube-audio-extractor",
+  "tags": []
+} 
