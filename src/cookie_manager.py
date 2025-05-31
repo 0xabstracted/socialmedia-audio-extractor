@@ -82,13 +82,27 @@ class CookieManager:
         with self._lock:
             # Check if file was modified externally
             if self.cookie_path.exists():
-                current_modified = self.cookie_path.stat().st_mtime
-                if self.last_modified != current_modified:
-                    self.last_modified = current_modified
-                    self._cookies_valid = None  # Force revalidation
-                    logger.info("Cookies file was modified externally, will revalidate")
+                try:
+                    current_modified = self.cookie_path.stat().st_mtime
+                    if self.last_modified != current_modified:
+                        self.last_modified = current_modified
+                        self._cookies_valid = None  # Force revalidation
+                        logger.info("Cookies file was modified externally, will revalidate")
+                except PermissionError as e:
+                    logger.warning(f"Cannot access cookie file stats: {e}")
             
-            # Refresh if needed
+            # Check if we can write to the cookies directory
+            try:
+                # Test write permissions
+                test_file = self.cookie_path.parent / ".write_test"
+                test_file.touch()
+                test_file.unlink()
+            except (PermissionError, OSError) as e:
+                logger.error(f"No write permissions for cookie directory: {e}")
+                logger.info("Cookie auto-refresh disabled due to read-only filesystem")
+                return str(self.cookie_path) if self.cookie_path.exists() else None
+            
+            # Refresh if needed and we have write permissions
             if self._should_refresh_cookies():
                 logger.warning("Cookies need refresh, attempting automatic refresh...")
                 try:

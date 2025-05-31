@@ -83,7 +83,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./cookies.txt:/app/cookies.txt:ro
+      - ./cookies.txt:/app/cookies.txt:rw
       - ./logs:/app/logs
       - /tmp:/tmp
     environment:

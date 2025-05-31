@@ -1,0 +1,35 @@
+sudo docker stop $(docker ps -q) 2>/dev/null || echo "No containers to stop"
+sudo docker rm $(docker ps -aq) 2>/dev/null || echo "No containers to remove"
+sudo docker rmi $(docker images -q) 2>/dev/null || echo "No images to remove"
+sudo docker system prune -af
+sudo docker ps -a
+sudo docker images
+
+sudo docker ps
+sudo docker stop socialmedia-audio-extractor_audio-extractor_1 socialmedia-audio-extractor_redis_1
+sudo docker rm socialmedia-audio-extractor_audio-extractor_1 socialmedia-audio-extractor_redis_1
+sudo docker rmi socialmedia-audio-extractor_audio-extractor redis:7-alpine
+sudo docker system prune -af
+sudo docker ps -a
+sudo docker images
+
+
+pip3 install yt-dlp requests
+cd scripts/cookies
+python3 refresh_cookies.py
+cd ../..
+
+
+- Log into YouTube with a throwaway account
+- Navigate to: https://www.youtube.com/robots.txt
+- Install browser extension: "Get cookies.txt LOCALLY"
+- Export cookies as "cookies.txt"
+
+
+scp cookies.txt aibaby:/home/ubuntu/audio-social-media/
+
+git pull origin main
+sudo docker-compose up -d --build
+sleep 30
+sudo docker ps
+sudo docker-compose logs -f --tail=50
