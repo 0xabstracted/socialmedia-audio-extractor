@@ -1,0 +1,843 @@
+{
+  "name": "Baby Chaganti",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "let image_asset_id = null;\nlet audio_asset_id = null;\nlet image_url = null;\nlet audio_url = null;\n\nfor (const item of items) {\n  const { type, id, asset } = item.json;\n\n  if (type === 'image') {\n    image_asset_id = id;\n    image_url = asset?.url || null;\n  } else if (type === 'audio') {\n    audio_asset_id = id;\n    audio_url = asset?.url || null;\n  }\n}\n\nreturn [\n  {\n    json: {\n      image_asset_id,\n      audio_asset_id,\n      image_url,\n      audio_url\n    }\n  }\n];\n"
+      },  
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2020,
+        -400
+      ],
+      "id": "53824f87-3494-4397-97d0-ba6c8d80a3ec",
+      "name": "Split image & Audio Asset Ids"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hedra.com/web-app/public/generations",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\":\"video\",\n  \"ai_model_id\": \"d1dd37a3-e39a-4854-a298-6510289f9cf2\" ,\n  \"start_keyframe_id\": \"{{ $json. image_asset_id }}\",\n  \"audio_id\": \"{{ $json.audio_asset_id }}\",\n  \"generated_video_inputs\": {\n    \"text_prompt\": \"A very cute, chubby Indian baby boy with curly hair, seated upright at a professional podcast desk, celebrating his first birthday. He is wearing a festive birthday outfit (no hat), and large over-ear headphones, speaking into a high-quality podcast microphone. His face is expressive, eyes wide and curious, cheeks chubby, and his body language joyful and animated. The baby occasionally moves his hands freely while talking, sometimes interacting with birthday-related items on the table like a cupcake, a party blower, or a small toy. He maintains focused eye contact with the camera, with natural pauses and visible deep breathing between phrases. The background features a cozy podcast studio with soft, warm lighting, dark velvet curtains, and a subtle birthday decoration theme. The tone is curious, intense, and joyful, with a sense of wonder as he begins his journey to explore the world beyond podcasting. Cinematic, high-resolution, and lifelike animation style. Make sure the video feels like a real podcast moment, mixed with a child's birthday vibe.\",\n    \"resolution\": \"720p\",\n    \"aspect_ratio\": \"9:16\",\n    \"duration_ms\":5000\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2240,
+        -400
+      ],
+      "id": "7e085125-a89c-41c9-8d6f-1df5e582eb4e",
+      "name": "Create Video",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "E3dS3otc7wQ97Pcn",
+          "name": "Hedera"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        1800,
+        -400
+      ],
+      "id": "5c2240d4-df94-465f-ac25-68498b71fc6b",
+      "name": "Merge Assets"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.hedra.com/web-app/public/assets/{{ $json.id }}/upload",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1580,
+        -420
+      ],
+      "id": "959fc238-b884-480f-a321-c38775be8d09",
+      "name": "Upload Audio(Hedra)",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "E3dS3otc7wQ97Pcn",
+          "name": "Hedera"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.hedra.com/web-app/public/assets/{{ $json.id }}/upload",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1580,
+        -20
+      ],
+      "id": "290eab36-82f7-4874-bcc8-296c663e5705",
+      "name": "Upload Image(Hedra)",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "E3dS3otc7wQ97Pcn",
+          "name": "Hedera"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const binaryItem = items.find(i => i.binary && Object.keys(i.binary).length);\nconst metadataItem = items.find(i => i.json && i.json.id && i.json.type);\n\nreturn [\n {\n  json: {\n    id: metadataItem.json.id,\n    type: metadataItem.json.type,\n    name: metadataItem.json.name || 'uploaded-asset'\n  },\n  binary: {\n      data: binaryItem.binary.data\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        -20
+      ],
+      "id": "7ffe30ec-25ad-432b-b3d0-824c27198c3d",
+      "name": "Split Image Metadata"
+    },
+    {
+      "parameters": {
+        "jsCode": "const binaryItem = items.find(i => i.binary && Object.keys(i.binary).length);\nconst metadataItem = items.find(i => i.json && i.json.id && i.json.type);\n\nreturn [\n  {\n    json: {\n      id: metadataItem.json.id,\n      type: metadataItem.json.type,\n      name: metadataItem.json.name || 'uploaded-asset'\n    },\n    binary: {\n      data: {\n        ...binaryItem.binary.data,\n        fileName: 'podcast.mp3',\n        mimeType: 'audio/mpeg',\n        fileExtension: 'mp3'\n      }\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        -420
+      ],
+      "id": "9f39b133-cda5-47b0-8de3-005e160dbea9",
+      "name": "Split Audio Metadata"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hedra.com/web-app/public/assets",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"name\": \"baby-podcaster-audio\",\n  \"type\": \"audio\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        -600
+      ],
+      "id": "0bafafdf-e70d-4f1b-b148-90d054c89562",
+      "name": "Create Audio Asset(Hedra)",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "E3dS3otc7wQ97Pcn",
+          "name": "Hedera"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hedra.com/web-app/public/assets",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"name\": \"baby-podcaster-image\",\n  \"type\": \"image\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        -160
+      ],
+      "id": "7aa1828e-f2ce-46af-8966-75c970a013ba",
+      "name": "Create Image Asset(Hedra)",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "E3dS3otc7wQ97Pcn",
+          "name": "Hedera"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        1120,
+        -420
+      ],
+      "id": "a49faa4f-3306-469c-86b5-c38c46d94d97",
+      "name": "Merge Audio Assets"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        1120,
+        -20
+      ],
+      "id": "9b93db95-7ad6-47be-ac44-ea5bbe92c59f",
+      "name": "Merge Image Assets"
+    },
+    {
+      "parameters": {
+        "unit": "minutes"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2460,
+        -400
+      ],
+      "id": "d87a1604-c161-4007-b49e-a81ab2672d49",
+      "name": "Wait 5 min",
+      "webhookId": "804c1d36-1120-46ed-bbf6-ffa2a74b58d1"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.hedra.com/web-app/public/assets?type=video&ids={{ $json.asset_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2660,
+        -400
+      ],
+      "id": "3ab2a9a1-3b9e-4fc7-8b68-21a620a348f0",
+      "name": "Get BabyPod Video(Hedra)",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "E3dS3otc7wQ97Pcn",
+          "name": "Hedera"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1800,
+        -40
+      ],
+      "id": "39a7253b-043c-4b93-8e4a-8347acd43beb",
+      "name": "Wait 10 sec",
+      "webhookId": "f7d43919-a641-4f58-8014-cd9fa2d4cdd9"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.asset.url}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2100,
+        -40
+      ],
+      "id": "6ba32ca2-336c-443e-9b08-b4c4186d3642",
+      "name": "Download BabyPod Video"
+    },
+    {
+      "parameters": {
+        "name": "=",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1Ds8LDWR4FC6dcEenZHhjFXko_AhRxH2c",
+          "mode": "list",
+          "cachedResultName": "Baby Podcasts",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1Ds8LDWR4FC6dcEenZHhjFXko_AhRxH2c"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2320,
+        -40
+      ],
+      "id": "e30645e6-7e8f-48ee-a46e-ce0ebb5922ef",
+      "name": "Upload VIdeo",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "d0yJ3O1zqCQLmL5O",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2540,
+        -40
+      ],
+      "id": "07c7b0bb-3b58-45aa-96ab-2ab8338de85b",
+      "name": "Download Video(Youtube)",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "d0yJ3O1zqCQLmL5O",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "operation": "upload",
+        "title": "={{ $json.id }}",
+        "regionCode": "US",
+        "categoryId": "24",
+        "options": {
+          "privacyStatus": "public"
+        }
+      },
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [
+        2760,
+        -40
+      ],
+      "id": "62018cee-d11a-415f-b6b2-7fdd3694edd3",
+      "name": "YouTube",
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "rW11EHXE4vtOOcoN",
+          "name": "YouTube account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        -280
+      ],
+      "id": "63a12b0a-b265-41d1-9430-eab55e41a5a4",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Generate a high-resolution image of a Indian baby male boy with curly hair. He is very cute, chubby , wearing large over-ear headphones, sitting in front of a professional podcast microphone. The setting visually represents and clearly shows the baby celebrating his first birthday in the podcast setting. He is wearing a birthday dress, and there are some other birthday-related items on the table. baby should be happy, cheerful and joyful. He should only wear the headphones. There should be no other things on his head.  The baby has a focused, adorable expression, big eyes, and visibly chubby cheeks. Background shows a podcast studio with a dark, rich curtain and soft, warm lighting illuminating the baby’s innocent face. High-resolution, photorealistic, cinematic style. The scene reflects a cozy podcast setup.\n"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        220,
+        0
+      ],
+      "id": "e5ee2902-7fd4-4225-ab11-f5e7345bc7da",
+      "name": "Birthday Kid Generator",
+      "credentials": {
+        "openAiApi": {
+          "id": "ftizHx9vUKJZtu7h",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Generate a podcast-style monologue in the voice of a one-year-old baby named Bunny, who talks like Joe Rogan. Bunny reflects on his first year of life and how he started a podcast when he was just six months old. Now turning one, he discusses a deep, thoughtful retrospective on his podcasting career with the greats. Having discussed all possible topics, he decides to travel across the world, exploring different ways of life and being part of something greater than himself, his city, and humanity. He decides to visit the world's wonders and experience their magnificence. He seeks to understand the formation of the 7 wonders, the factors that made them remarkable, and their rich historical background. He says they wouldn't be the 7 wonders without their historical significance. He has a conversation with his parents about this. His mom is skeptical about him traveling alone, but his dad supports his curiosity. Bunny decides to explore the Seven Wonders of the World, starting with the Taj Mahal. The tone should be casual, intense, empathetic, and exciting, with tangents, unexpected analogies, and deep thoughts. Keep it imaginative and charming. Keep it flowing naturally as if it's a segment from a podcast episode. Craft the tone of your monologue to convey the baby's excitement for travel, emphasizing that he has spent his entire life podcasting and staying indoors, and now he is thrilled to step outside into the unknown, ready to explore the world and embark on his adventurous journey. \n\nReturn a single JSON object named Podcast with one key: \"monologue,\" containing a 500-character natural-sounding podcast rant. Avoid line breaks and special characters that would break the JSON."
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        200,
+        -480
+      ],
+      "id": "16c95275-b9ef-4a75-9b27-9e94dd0f08f6",
+      "name": "Bunny Birthday Podcast",
+      "credentials": {
+        "openAiApi": {
+          "id": "ftizHx9vUKJZtu7h",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "model": "gpt-image-1",
+        "prompt": "={{ Array.isArray($json.message.content.prompt) ? $json.message.content.prompt[0] : $json.message.content.prompt }}\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        660,
+        0
+      ],
+      "id": "c4380881-34fe-4ff1-9502-e738864c9a75",
+      "name": "Generate Bunny image",
+      "credentials": {
+        "openAiApi": {
+          "id": "ftizHx9vUKJZtu7h",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.elevenlabs.io/v1/text-to-speech/bIHbv24MWmeRgasZH58o",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n \"text\": \"{{ $json.message.content.monologue }}\"\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        -480
+      ],
+      "id": "cba385db-3a1f-4c1b-937e-15d9c1e55170",
+      "name": "Bunny Final Podcast Audio Generator",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "J4y5xo3juTPg1C1J",
+          "name": "ElevenLabs"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Create Video": [
+      {
+        "json": {
+          "type": "video",
+          "ai_model_id": "d1dd37a3-e39a-4854-a298-6510289f9cf2",
+          "start_keyframe_id": "95de89fa-e6f3-4dd5-a2aa-149913dc843f",
+          "audio_id": "74cae96e-7941-43f4-bc8e-34ddbbe0ab64",
+          "generated_video_inputs": {
+            "text_prompt": "A very cute, chubby Indian baby boy with curly hair, seated upright at a professional podcast desk, celebrating his first birthday. He is wearing a festive birthday outfit (no hat), and large over-ear headphones, speaking into a high-quality podcast microphone. His face is expressive, eyes wide and curious, cheeks chubby, and his body language joyful and animated. The baby occasionally moves his hands freely while talking, sometimes interacting with birthday-related items on the table like a cupcake, a party blower, or a small toy. He maintains focused eye contact with the camera, with natural pauses and visible deep breathing between phrases. The background features a cozy podcast studio with soft, warm lighting, dark velvet curtains, and a subtle birthday decoration theme. The tone is curious, intense, and joyful, with a sense of wonder as he begins his journey to explore the world beyond podcasting. Cinematic, high-resolution, and lifelike animation style. Make sure the video feels like a real podcast moment, mixed with a child's birthday vibe.",
+            "resolution": "720p",
+            "aspect_ratio": "9:16",
+            "duration_ms": 5000
+          },
+          "id": "92c0bc5e-c562-4d37-abb5-74576fa4e8e4",
+          "asset_id": "2942e71a-4fdb-41b8-a369-e7b37cc0fe39"
+        }
+      }
+    ],
+    "Birthday Kid Generator": [
+      {
+        "json": {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": {
+              "prompt": "Create a high-resolution, photorealistic image of a cute Indian baby boy, celebrating his first birthday in a podcast studio. The baby has chubby cheeks, big expressive eyes, curly hair, and is wearing a stylish birthday dress. The baby is sitting cheerfully in front of a professional podcast microphone. He wears large over-ear headphones (the only thing on his head). On the table are birthday-related items such as a small birthday cake with a '1' candle, colorful confetti, and a party cup. The baby is joyful, with a happy and slightly focused expression, looking at the mic or slightly off camera. The studio background features a dark, rich curtain, soft and warm lighting highlighting the baby’s face, and a cozy podcast setup with subtle mic arms and cables visible. The overall style is cinematic and well-lit, capturing the adorable and festive podcast moment.",
+              "style": "Photorealistic, high-resolution, cinematic, warm lighting",
+              "subject": "Indian male baby, chubby, curly hair, big eyes, joyful, wearing birthday dress and over-ear headphones",
+              "composition": {
+                "foreground": [
+                  "Baby boy with headphones and birthday dress",
+                  "Professional podcast microphone",
+                  "Table with birthday cake (with '1' candle), confetti, small party decor"
+                ],
+                "background": [
+                  "Rich, dark curtain",
+                  "Soft, warm ambient studio lighting"
+                ],
+                "additional_details": [
+                  "Baby has nothing on his head except headphones",
+                  "No extraneous objects on head",
+                  "Cozy and inviting podcast studio feel"
+                ]
+              }
+            },
+            "refusal": null,
+            "annotations": []
+          },
+          "logprobs": null,
+          "finish_reason": "stop"
+        }
+      }
+    ],
+    "Bunny Birthday Podcast": [
+      {
+        "json": {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": {
+              "monologue": "Yo, welcome back to the Bunny Experience! It's wild, man—one year outta the womb and six months on the mic. I've talked with legends, unraveled mysteries, peeked behind the diaper curtain of life, but there’s more out there, you know? Imagine being stuck in a crib, then suddenly craving the Taj Mahal. My mom’s like, 'Slow down, Bunny, you’re just one!' But dad gets it. The seven wonders—dude, they’re not just buildings; they’re proof humans crave meaning. If a rattle can inspire awe, what about the Pyramids? I need to see it. You learn by living, not just babbling to guests on a podcast. Next stop: Taj Mahal, baby! Wonder is literally my next step. Let’s chase it."
+            },
+            "refusal": null,
+            "annotations": []
+          },
+          "logprobs": null,
+          "finish_reason": "stop"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Split image & Audio Asset Ids": {
+      "main": [
+        [
+          {
+            "node": "Create Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Assets": {
+      "main": [
+        [
+          {
+            "node": "Split image & Audio Asset Ids",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Audio(Hedra)": {
+      "main": [
+        [
+          {
+            "node": "Merge Assets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Image(Hedra)": {
+      "main": [
+        [
+          {
+            "node": "Merge Assets",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Split Image Metadata": {
+      "main": [
+        [
+          {
+            "node": "Upload Image(Hedra)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Audio Metadata": {
+      "main": [
+        [
+          {
+            "node": "Upload Audio(Hedra)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Audio Asset(Hedra)": {
+      "main": [
+        [
+          {
+            "node": "Merge Audio Assets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Image Asset(Hedra)": {
+      "main": [
+        [
+          {
+            "node": "Merge Image Assets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Audio Assets": {
+      "main": [
+        [
+          {
+            "node": "Split Audio Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Image Assets": {
+      "main": [
+        [
+          {
+            "node": "Split Image Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Video": {
+      "main": [
+        [
+          {
+            "node": "Wait 5 min",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get BabyPod Video(Hedra)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get BabyPod Video(Hedra)": {
+      "main": [
+        [
+          {
+            "node": "Wait 10 sec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 10 sec": {
+      "main": [
+        [
+          {
+            "node": "Download BabyPod Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download BabyPod Video": {
+      "main": [
+        [
+          {
+            "node": "Upload VIdeo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload VIdeo": {
+      "main": [
+        [
+          {
+            "node": "Download Video(Youtube)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Video(Youtube)": {
+      "main": [
+        [
+          {
+            "node": "YouTube",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Bunny Birthday Podcast",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Birthday Kid Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Birthday Kid Generator": {
+      "main": [
+        [
+          {
+            "node": "Generate Bunny image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bunny Birthday Podcast": {
+      "main": [
+        [
+          {
+            "node": "Bunny Final Podcast Audio Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Bunny image": {
+      "main": [
+        [
+          {
+            "node": "Create Image Asset(Hedra)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Image Assets",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Bunny Final Podcast Audio Generator": {
+      "main": [
+        [
+          {
+            "node": "Create Audio Asset(Hedra)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Audio Assets",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e4184fa6-369e-4229-9930-4412d7289515",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d51eb297ec6c4d11c17253651670a5959a4fedeb006ead64cd58a47dbe8e7044"
+  },
+  "id": "oweDCE1arfbKKIKm",
+  "tags": []
+}

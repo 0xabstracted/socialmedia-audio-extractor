@@ -15,13 +15,13 @@
         },
         "options": {}
       },
-      "id": "15f12ff0-3d63-4983-af6b-9679c7d407e7",
+      "id": "e3b7732c-906d-40f4-be62-7743a65c43c2",
       "name": "Set 'Text'",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        240,
-        200
+        0,
+        140
       ]
     },
     {
@@ -29,13 +29,13 @@
         "resource": "file",
         "fileId": "={{ $json.message.voice.file_id }}"
       },
-      "id": "6674fae8-2689-4705-8175-2649fd316021",
+      "id": "0e5b3f83-0b76-4b3e-a86b-26745b22c143",
       "name": "Download Voice File",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        160,
-        40
+        -80,
+        -20
       ],
       "webhookId": "c0b376b1-7b63-41b6-8063-0b3096b8333d",
       "credentials": {
@@ -51,13 +51,13 @@
         "operation": "transcribe",
         "options": {}
       },
-      "id": "fb4ea7aa-c23e-40e8-a866-1df407a46b2f",
+      "id": "b8ba3f88-211b-4833-9b6d-53b95dc19f42",
       "name": "Transcribe Audio",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.6,
       "position": [
-        320,
-        40
+        80,
+        -20
       ],
       "credentials": {
         "openAiApi": {
@@ -123,13 +123,13 @@
         },
         "options": {}
       },
-      "id": "f5959391-eba2-4588-a278-61334fadeeab",
+      "id": "914f2bdc-101a-4fa6-b65e-22efc50ecaf2",
       "name": "Switch",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        -100,
-        120
+        -340,
+        60
       ]
     },
     {
@@ -142,10 +142,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -300,
-        -40
+        -540,
+        -100
       ],
-      "id": "76c84cee-c2e3-4865-bb82-31320814c2af",
+      "id": "7c27fbba-86e6-487e-829a-fefef5adcc56",
       "name": "Sticky Note1"
     },
     {
@@ -158,10 +158,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        80,
-        -40
+        -160,
+        -100
       ],
-      "id": "8c60216e-b272-43c0-882f-49bd6ec49525",
+      "id": "dac91f97-fb9f-426e-94ab-c36cce5b24c4",
       "name": "Sticky Note7"
     },
     {
@@ -174,10 +174,10 @@
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.2,
       "position": [
-        -280,
-        120
+        -520,
+        60
       ],
-      "id": "77b28877-d13c-469b-a439-affa3ccdf4ae",
+      "id": "2530814f-b9ea-4aca-a015-3fd110ed7896",
       "name": "Telegram_Trigger",
       "webhookId": "f9d2a169-fd6e-40f1-82f5-36afa714030d",
       "credentials": {
@@ -222,44 +222,44 @@
           ]
         },
         "options": {
-          "timeout": 120000,
           "response": {
             "response": {
               "responseFormat": "file",
               "outputPropertyName": "audio"
             }
-          }
+          },
+          "timeout": 120000
         }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
         460,
-        200
+        0
       ],
-      "id": "eea5deca-d8b1-47b1-a326-b63b47b7ad89",
+      "id": "255bf626-f354-4716-a82b-5e1c7120e52e",
       "name": "AudioExtractor"
     },
     {
       "parameters": {
-        "resource": "message",
         "operation": "sendAudio",
         "chatId": "={{ $('Telegram_Trigger').item.json.message.chat.id }}",
         "binaryData": true,
         "binaryPropertyName": "audio",
         "additionalFields": {
-          "title": "Extracted Audio",
-          "caption": "🎵 Audio extracted from: {{ $('Set \\'Text\\'').item.json.text }}"
+          "caption": "🎵 Audio extracted from: {{ $('Set \\'Text\\'').item.json.text }}",
+          "title": "Extracted Audio"
         }
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         660,
-        200
+        0
       ],
-      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "id": "9121aee0-7389-47d0-9173-0bd8cfb5cacb",
       "name": "Send Audio to Telegram",
+      "webhookId": "a6e5e345-410a-402a-ae51-615d0c2f7b10",
       "credentials": {
         "telegramApi": {
           "id": "r4OqYKpnarG2K18J",
@@ -277,10 +277,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        440,
-        80
+        400,
+        -100
       ],
-      "id": "audio-processing-note",
+      "id": "13805739-5cde-495a-970c-83d0b9264882",
       "name": "Sticky Note - Audio"
     }
   ],
@@ -349,11 +349,11 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "c0038dce-e9c6-4608-8eb4-2745d498f161",
+  "versionId": "75adbb28-ada1-4459-86b3-252efc7df63e",
   "meta": {
     "instanceId": "d51eb297ec6c4d11c17253651670a5959a4fedeb006ead64cd58a47dbe8e7044"
   },

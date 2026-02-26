@@ -1,0 +1,297 @@
+{
+  "name": "Content Enhancer",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "url"
+            },
+            {
+              "name": "context"
+            },
+            {
+              "name": "chatId"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -200,
+        300
+      ],
+      "id": "workflow-trigger",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process input parameters\nconst url = $json.url || '';\nconst context = $json.context || 'Create engaging video content';\nconst chatId = $json.chatId;\n\n// Extract platform info\nlet platform = 'unknown';\nif (url.includes('youtube.com') || url.includes('youtu.be')) {\n  platform = 'YouTube';\n} else if (url.includes('tiktok.com')) {\n  platform = 'TikTok';\n} else if (url.includes('instagram.com')) {\n  platform = 'Instagram';\n} else if (url.includes('twitter.com') || url.includes('x.com')) {\n  platform = 'Twitter/X';\n}\n\nreturn {\n  json: {\n    url: url,\n    context: context,\n    chat_id: chatId,\n    platform: platform\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "id": "input-processor",
+      "name": "Input Processor"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "✨ Enhancing content with AI...\n\n🔗 Source: {{ $json.platform }}\n💭 Context: {{ $json.context }}\n\n🧠 Generating engaging title and visual concepts...",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        200
+      ],
+      "id": "enhancement-notification",
+      "name": "Enhancement Notification"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        600,
+        300
+      ],
+      "id": "main-llm",
+      "name": "GPT-4o"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Based on the social media URL: {{ $json.url }}\nAnd user context: {{ $json.context }}\nPlatform: {{ $json.platform }}\n\nGenerate enhanced content for video creation.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a Creative Content Enhancer AI that specializes in generating engaging video content concepts.\n\n## Your Task:\nBased on the provided social media URL and user context, create:\n1. **Engaging Video Title** (max 60 characters)\n2. **Detailed Visual Prompt** for AI video generation\n\n## Title Guidelines:\n- Catchy and attention-grabbing\n- Platform-appropriate (YouTube, TikTok, Instagram, etc.)\n- Under 60 characters\n- Include relevant keywords\n- Emotionally engaging\n\n## Visual Prompt Guidelines:\nCreate a detailed description for video generation that includes:\n- **Visual Style**: Modern, cinematic, animated, etc.\n- **Color Scheme**: Specific colors and mood\n- **Scene Description**: What's happening visually\n- **Character/Subject**: If applicable\n- **Background/Environment**: Setting and atmosphere\n- **Movement/Animation**: How elements move\n- **Text Elements**: Any overlay text concepts\n- **Mood/Emotion**: The feeling to convey\n\n## Output Format:\nReturn a JSON object with exactly these keys:\n```json\n{\n  \"title\": \"Your engaging title here\",\n  \"visual_prompt\": \"Your detailed visual description here\"\n}\n```\n\n## Style Examples:\n- **YouTube**: Educational, informative, thumbnail-worthy\n- **TikTok**: Trendy, fast-paced, youth-oriented\n- **Instagram**: Aesthetic, lifestyle-focused, visually appealing\n- **Twitter**: News-worthy, discussion-starter, viral potential\n\nMake sure the content is appropriate for the source platform and user context!"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        400,
+        300
+      ],
+      "id": "content-enhancement-agent",
+      "name": "Content Enhancement Agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process and validate the AI response\nconst aiResponse = $json.output;\nconst originalInput = $('Input Processor').item.json;\n\ntry {\n  // Try to parse JSON response\n  let contentData;\n  if (typeof aiResponse === 'string') {\n    // Remove any markdown code block markers\n    const cleanResponse = aiResponse.replace(/```json\\n?|```\\n?/g, '').trim();\n    contentData = JSON.parse(cleanResponse);\n  } else {\n    contentData = aiResponse;\n  }\n\n  // Validate required fields\n  const title = contentData.title || 'Enhanced Video Content';\n  const visualPrompt = contentData.visual_prompt || contentData.visualPrompt || 'A modern, engaging video with dynamic visuals and vibrant colors';\n\n  // Ensure title is within character limit\n  const truncatedTitle = title.length > 60 ? title.substring(0, 57) + '...' : title;\n\n  return {\n    json: {\n      success: true,\n      chat_id: originalInput.chat_id,\n      url: originalInput.url,\n      platform: originalInput.platform,\n      context: originalInput.context,\n      title: truncatedTitle,\n      visual_prompt: visualPrompt,\n      character_count: truncatedTitle.length,\n      message: `✅ Content enhanced successfully!\\n\\n🎬 Title: \"${truncatedTitle}\"\\n🎨 Visual concept generated!`\n    }\n  };\n} catch (error) {\n  // Fallback if JSON parsing fails\n  return {\n    json: {\n      success: false,\n      chat_id: originalInput.chat_id,\n      url: originalInput.url,\n      platform: originalInput.platform,\n      error: 'Failed to parse AI response',\n      title: 'Enhanced Video Content',\n      visual_prompt: 'A modern, dynamic video with engaging visuals, vibrant colors, and smooth transitions that capture viewer attention',\n      message: '⚠️ Used fallback content enhancement. Title and visuals generated with default settings.'\n    }\n  };\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        300
+      ],
+      "id": "response-processor",
+      "name": "Response Processor"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        300
+      ],
+      "id": "success-check",
+      "name": "Success Check"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        200
+      ],
+      "id": "success-notification",
+      "name": "Success Notification"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        400
+      ],
+      "id": "fallback-notification",
+      "name": "Fallback Notification"
+    },
+    {
+      "parameters": {
+        "content": "# Content Analysis\n\n🔍 Process URL and context for enhancement",
+        "height": 260,
+        "width": 340,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -220,
+        180
+      ],
+      "id": "content-analysis-label",
+      "name": "#ContentAnalysis"
+    },
+    {
+      "parameters": {
+        "content": "# AI Enhancement\n\n🧠 Generate titles and visual prompts with AI",
+        "height": 260,
+        "width": 440,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        180,
+        80
+      ],
+      "id": "ai-enhancement-label",
+      "name": "#AIEnhancement"
+    },
+    {
+      "parameters": {
+        "content": "# Response Processing\n\n📊 Validate and format AI output",
+        "height": 260,
+        "width": 440,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        980,
+        80
+      ],
+      "id": "response-processing-label",
+      "name": "#ResponseProcessing"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Input Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Processor": {
+      "main": [
+        [
+          {
+            "node": "Enhancement Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Content Enhancement Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Content Enhancement Agent": {
+      "main": [
+        [
+          {
+            "node": "Response Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Response Processor": {
+      "main": [
+        [
+          {
+            "node": "Success Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success Check": {
+      "main": [
+        [
+          {
+            "node": "Success Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "ContentEnhancer",
+  "tags": ["content-enhancement", "ai-generation", "title-generation", "visual-prompts", "module"]
+} 

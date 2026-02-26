@@ -6,12 +6,21 @@ sudo docker ps -a
 sudo docker images
 
 sudo docker ps
-sudo docker stop socialmedia-audio-extractor_audio-extractor_1 socialmedia-audio-extractor_redis_1
-sudo docker rm socialmedia-audio-extractor_audio-extractor_1 socialmedia-audio-extractor_redis_1
-sudo docker rmi socialmedia-audio-extractor_audio-extractor redis:7-alpine
+sudo docker stop youtube-audio-extractor
+sudo docker rm youtube-audio-extractor
+sudo docker rmi youtube-audio-extractor
 sudo docker system prune -af
 sudo docker ps -a
 sudo docker images
+
+git pull origin main
+sudo docker-compose up -d --build
+sleep 30
+sudo docker ps
+sudo docker-compose logs -f --tail=50
+
+
+
 
 
 pip3 install yt-dlp requests
@@ -27,9 +36,3 @@ cd ../..
 
 
 scp cookies.txt aibaby:/home/ubuntu/audio-social-media/
-
-git pull origin main
-sudo docker-compose up -d --build
-sleep 30
-sudo docker ps
-sudo docker-compose logs -f --tail=50

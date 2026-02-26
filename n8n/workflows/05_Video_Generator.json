@@ -1,0 +1,766 @@
+{
+  "name": "Video Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "audioData"
+            },
+            {
+              "name": "context"
+            },
+            {
+              "name": "title"
+            },
+            {
+              "name": "chatId"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -200,
+        400
+      ],
+      "id": "workflow-trigger",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process input parameters for video generation\nconst audioData = $json.audioData;\nconst context = $json.context || 'Create engaging video content';\nconst title = $json.title || 'AI Generated Video';\nconst chatId = $json.chatId;\n\n// Generate visual prompt if not provided\nconst visualPrompt = `Modern dynamic video featuring vibrant colors, smooth transitions, and engaging visual elements. The style should be contemporary and eye-catching with professional cinematography. Background should complement the audio content with abstract geometric patterns, flowing animations, and depth-of-field effects. Resolution: 720p, aspect ratio: 9:16 for mobile viewing.`;\n\nreturn {\n  json: {\n    audio_data: audioData,\n    context: context,\n    title: title,\n    visual_prompt: visualPrompt,\n    chat_id: chatId,\n    resolution: '720p',\n    aspect_ratio: '9:16',\n    duration_ms: 15000\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        400
+      ],
+      "id": "input-processor",
+      "name": "Input Processor"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "🎬 Starting video generation...\n\n📹 Title: {{ $json.title }}\n🎨 Creating visual assets...\n\n⏳ This process will take 3-5 minutes...",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        300
+      ],
+      "id": "generation-notification",
+      "name": "Generation Notification"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hedra.com/web-app/public/assets",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"name\": \"audio-{{ $now() }}\",\n  \"type\": \"audio\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        300
+      ],
+      "id": "create-audio-asset",
+      "name": "Create Audio Asset"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hedra.com/web-app/public/assets",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"name\": \"image-{{ $now() }}\",\n  \"type\": \"image\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        500
+      ],
+      "id": "create-image-asset",
+      "name": "Create Image Asset"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "model": "dall-e-3",
+        "prompt": "={{ $json.visual_prompt }}",
+        "options": {
+          "size": "1024x1024",
+          "quality": "standard"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        600,
+        500
+      ],
+      "id": "generate-image",
+      "name": "Generate Image"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        600,
+        350
+      ],
+      "id": "merge-audio-asset",
+      "name": "Merge Audio Asset"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        800,
+        450
+      ],
+      "id": "merge-image-asset",
+      "name": "Merge Image Asset"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare audio for upload to Hedra\nconst audioAsset = items.find(i => i.json && i.json.type === 'audio');\nconst audioData = $('Input Processor').item.json.audio_data;\n\nif (!audioAsset || !audioData) {\n  throw new Error('Missing audio asset or data');\n}\n\nreturn [\n  {\n    json: {\n      asset_id: audioAsset.json.id,\n      asset_name: audioAsset.json.name,\n      asset_type: 'audio'\n    },\n    binary: {\n      audio: {\n        data: audioData,\n        mimeType: 'audio/mpeg',\n        fileName: 'extracted_audio.mp3',\n        fileExtension: 'mp3'\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        300
+      ],
+      "id": "prepare-audio-upload",
+      "name": "Prepare Audio Upload"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare image for upload to Hedra\nconst imageAsset = items.find(i => i.json && i.json.type === 'image');\nconst imageData = items.find(i => i.binary && i.binary.data);\n\nif (!imageAsset || !imageData) {\n  throw new Error('Missing image asset or data');\n}\n\nreturn [\n  {\n    json: {\n      asset_id: imageAsset.json.id,\n      asset_name: imageAsset.json.name,\n      asset_type: 'image'\n    },\n    binary: {\n      image: imageData.binary.data\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        500
+      ],
+      "id": "prepare-image-upload",
+      "name": "Prepare Image Upload"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.hedra.com/web-app/public/assets/{{ $json.asset_id }}/upload",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "audio"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        300
+      ],
+      "id": "upload-audio",
+      "name": "Upload Audio"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.hedra.com/web-app/public/assets/{{ $json.asset_id }}/upload",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "image"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        500
+      ],
+      "id": "upload-image",
+      "name": "Upload Image"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        1200,
+        350
+      ],
+      "id": "merge-uploaded-assets",
+      "name": "Merge Uploaded Assets"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare video generation request\nconst audioAsset = items.find(i => i.json && i.json.asset_type === 'audio');\nconst imageAsset = items.find(i => i.json && i.json.asset_type === 'image');\nconst originalData = $('Input Processor').item.json;\n\nif (!audioAsset || !imageAsset) {\n  throw new Error('Missing required assets for video generation');\n}\n\nreturn [\n  {\n    json: {\n      audio_asset_id: audioAsset.json.asset_id,\n      image_asset_id: imageAsset.json.asset_id,\n      title: originalData.title,\n      visual_prompt: originalData.visual_prompt,\n      chat_id: originalData.chat_id,\n      resolution: originalData.resolution,\n      aspect_ratio: originalData.aspect_ratio,\n      duration_ms: originalData.duration_ms\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        350
+      ],
+      "id": "prepare-video-request",
+      "name": "Prepare Video Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hedra.com/web-app/public/generations",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"video\",\n  \"ai_model_id\": \"d1dd37a3-e39a-4854-a298-6510289f9cf2\",\n  \"start_keyframe_id\": \"{{ $json.image_asset_id }}\",\n  \"audio_id\": \"{{ $json.audio_asset_id }}\",\n  \"generated_video_inputs\": {\n    \"text_prompt\": \"{{ $json.visual_prompt }}\",\n    \"resolution\": \"{{ $json.resolution }}\",\n    \"aspect_ratio\": \"{{ $json.aspect_ratio }}\",\n    \"duration_ms\": {{ $json.duration_ms }}\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1600,
+        350
+      ],
+      "id": "create-video",
+      "name": "Create Video"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "🎬 Video generation started!\n\n📹 Title: {{ $json.title }}\n⏱️ Estimated time: 3-5 minutes\n\n🔄 Processing with AI model...",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1600,
+        550
+      ],
+      "id": "video-started-notification",
+      "name": "Video Started Notification"
+    },
+    {
+      "parameters": {
+        "unit": "minutes",
+        "amount": 3
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1800,
+        350
+      ],
+      "id": "wait-for-generation",
+      "name": "Wait for Generation"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.hedra.com/web-app/public/assets?type=video&ids={{ $json.asset_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        350
+      ],
+      "id": "check-video-status",
+      "name": "Check Video Status"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.asset && $json.asset.url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        350
+      ],
+      "id": "video-ready-check",
+      "name": "Video Ready Check"
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2200,
+        550
+      ],
+      "id": "wait-and-retry",
+      "name": "Wait and Retry"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.asset.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2400,
+        250
+      ],
+      "id": "download-video",
+      "name": "Download Video"
+    },
+    {
+      "parameters": {
+        "name": "={{ $('Prepare Video Request').item.json.title }}-{{ $now() }}.mp4",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1Ds8LDWR4FC6dcEenZHhjFXko_AhRxH2c",
+          "mode": "list"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2600,
+        250
+      ],
+      "id": "backup-to-drive",
+      "name": "Backup to Drive"
+    },
+    {
+      "parameters": {
+        "operation": "sendVideo",
+        "chatId": "={{ $('Prepare Video Request').item.json.chat_id }}",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "additionalFields": {
+          "caption": "🎬 Your video is ready!\n\n📹 {{ $('Prepare Video Request').item.json.title }}\n✨ Generated with AI magic!",
+          "width": 720,
+          "height": 1280
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2800,
+        250
+      ],
+      "id": "send-video",
+      "name": "Send Video"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Prepare Video Request').item.json.chat_id }}",
+        "text": "❌ Video generation failed or timed out.\n\nPlease try again later or contact support if the issue persists.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2400,
+        450
+      ],
+      "id": "error-notification",
+      "name": "Error Notification"
+    },
+    {
+      "parameters": {
+        "content": "# Asset Creation\n\n🎨 Create audio and image assets for Hedra",
+        "height": 380,
+        "width": 440,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        180,
+        180
+      ],
+      "id": "asset-creation-label",
+      "name": "#AssetCreation"
+    },
+    {
+      "parameters": {
+        "content": "# Asset Upload\n\n📤 Upload prepared assets to Hedra platform",
+        "height": 380,
+        "width": 440,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        780,
+        180
+      ],
+      "id": "asset-upload-label",
+      "name": "#AssetUpload"
+    },
+    {
+      "parameters": {
+        "content": "# Video Generation\n\n🎬 Generate and process final video",
+        "height": 380,
+        "width": 440,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1380,
+        180
+      ],
+      "id": "video-generation-label",
+      "name": "#VideoGeneration"
+    },
+    {
+      "parameters": {
+        "content": "# Delivery\n\n📱 Download, backup, and send video",
+        "height": 380,
+        "width": 440,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2380,
+        130
+      ],
+      "id": "delivery-label",
+      "name": "#Delivery"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Input Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Processor": {
+      "main": [
+        [
+          {
+            "node": "Generation Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Audio Asset",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Image Asset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Audio Asset": {
+      "main": [
+        [
+          {
+            "node": "Merge Audio Asset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Image Asset": {
+      "main": [
+        [
+          {
+            "node": "Generate Image",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Image Asset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Image": {
+      "main": [
+        [
+          {
+            "node": "Merge Image Asset",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Audio Asset": {
+      "main": [
+        [
+          {
+            "node": "Prepare Audio Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Image Asset": {
+      "main": [
+        [
+          {
+            "node": "Prepare Image Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Audio Upload": {
+      "main": [
+        [
+          {
+            "node": "Upload Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Image Upload": {
+      "main": [
+        [
+          {
+            "node": "Upload Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Audio": {
+      "main": [
+        [
+          {
+            "node": "Merge Uploaded Assets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Image": {
+      "main": [
+        [
+          {
+            "node": "Merge Uploaded Assets",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Uploaded Assets": {
+      "main": [
+        [
+          {
+            "node": "Prepare Video Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Video Request": {
+      "main": [
+        [
+          {
+            "node": "Create Video",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Video Started Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Video": {
+      "main": [
+        [
+          {
+            "node": "Wait for Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Generation": {
+      "main": [
+        [
+          {
+            "node": "Check Video Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Video Status": {
+      "main": [
+        [
+          {
+            "node": "Video Ready Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video Ready Check": {
+      "main": [
+        [
+          {
+            "node": "Download Video",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait and Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait and Retry": {
+      "main": [
+        [
+          {
+            "node": "Check Video Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Video": {
+      "main": [
+        [
+          {
+            "node": "Backup to Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Backup to Drive": {
+      "main": [
+        [
+          {
+            "node": "Send Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "VideoGenerator",
+  "tags": ["video-generation", "hedra-api", "asset-management", "ai-video", "module"]
+} 

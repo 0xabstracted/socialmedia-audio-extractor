@@ -1,0 +1,378 @@
+{
+  "name": "Transcription Service",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "fileId"
+            },
+            {
+              "name": "chatId"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -200,
+        300
+      ],
+      "id": "workflow-trigger",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process input parameters\nconst fileId = $json.fileId || '';\nconst chatId = $json.chatId;\n\n// Validate file ID\nconst isValidFileId = fileId && fileId.length > 0;\n\nreturn {\n  json: {\n    file_id: fileId,\n    chat_id: chatId,\n    is_valid_file_id: isValidFileId\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "id": "input-processor",
+      "name": "Input Processor"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.is_valid_file_id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "id": "file-validator",
+      "name": "File ID Validator"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "🚫 Invalid voice file. Please send a valid voice message.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        500
+      ],
+      "id": "invalid-file-response",
+      "name": "Invalid File Response"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "🎤 Transcribing your voice message...\n\n⏳ This will take a few seconds...",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        400,
+        200
+      ],
+      "id": "transcription-notification",
+      "name": "Transcription Notification"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.file_id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        600,
+        200
+      ],
+      "id": "download-voice-file",
+      "name": "Download Voice File"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {
+          "language": "auto",
+          "temperature": 0,
+          "response_format": "text"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        800,
+        200
+      ],
+      "id": "transcribe-audio",
+      "name": "Transcribe Audio"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process transcription result\nconst transcriptionText = $json.text || '';\nconst originalInput = $('Input Processor').item.json;\n\n// Clean up the transcription\nconst cleanedText = transcriptionText.trim();\n\nif (cleanedText && cleanedText.length > 0) {\n  return {\n    json: {\n      success: true,\n      chat_id: originalInput.chat_id,\n      file_id: originalInput.file_id,\n      transcription: cleanedText,\n      word_count: cleanedText.split(' ').length,\n      message: `✅ Voice transcribed successfully!\\n\\n📝 Transcript: \"${cleanedText}\"`\n    }\n  };\n} else {\n  return {\n    json: {\n      success: false,\n      chat_id: originalInput.chat_id,\n      file_id: originalInput.file_id,\n      error: 'Failed to transcribe the voice message',\n      message: '❌ Could not transcribe the voice message. Please try again or speak more clearly.'\n    }\n  };\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        200
+      ],
+      "id": "transcription-processor",
+      "name": "Transcription Processor"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        200
+      ],
+      "id": "success-check",
+      "name": "Success Check"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1400,
+        100
+      ],
+      "id": "success-notification",
+      "name": "Success Notification"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1400,
+        300
+      ],
+      "id": "error-notification",
+      "name": "Error Notification"
+    },
+    {
+      "parameters": {
+        "content": "# Input Validation\n\n📋 Validate voice file parameters",
+        "height": 260,
+        "width": 440,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -220,
+        180
+      ],
+      "id": "input-validation-label",
+      "name": "#InputValidation"
+    },
+    {
+      "parameters": {
+        "content": "# Voice Processing\n\n🎤 Download and transcribe voice files",
+        "height": 260,
+        "width": 440,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        380,
+        80
+      ],
+      "id": "voice-processing-label",
+      "name": "#VoiceProcessing"
+    },
+    {
+      "parameters": {
+        "content": "# Result Processing\n\n📊 Process transcription results",
+        "height": 260,
+        "width": 440,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1180,
+        80
+      ],
+      "id": "result-processing-label",
+      "name": "#ResultProcessing"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Input Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Processor": {
+      "main": [
+        [
+          {
+            "node": "File ID Validator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File ID Validator": {
+      "main": [
+        [
+          {
+            "node": "Transcription Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invalid File Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcription Notification": {
+      "main": [
+        [
+          {
+            "node": "Download Voice File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Voice File": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Audio": {
+      "main": [
+        [
+          {
+            "node": "Transcription Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcription Processor": {
+      "main": [
+        [
+          {
+            "node": "Success Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success Check": {
+      "main": [
+        [
+          {
+            "node": "Success Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "TranscriptionService",
+  "tags": ["transcription", "voice-processing", "openai-whisper", "module"]
+} 

@@ -1,0 +1,1064 @@
+{
+  "name": "Social Media Audio Extractor",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message",
+          "edited_message"
+        ],
+        "additionalFields": {
+          "download_content": true
+        }
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -800,
+        400
+      ],
+      "id": "telegram-trigger",
+      "name": "Telegram Trigger"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.voice?.file_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists"
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists"
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "https?:\\/\\/[^\\s]+",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "voice_text_url"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.voice?.file_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "voice_only"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists"
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "https?:\\/\\/[^\\s]+",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text_with_url"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text_only"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -600,
+        400
+      ],
+      "id": "input-classifier",
+      "name": "Input Classifier"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -400,
+        200
+      ],
+      "id": "download-voice",
+      "name": "Download Voice File"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -200,
+        200
+      ],
+      "id": "transcribe-audio",
+      "name": "Transcribe Audio"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract URLs from text (either direct text or transcribed)\nconst text = $json.text || $json.message?.text || '';\nconst urlRegex = /https?:\\/\\/[^\\s]+/g;\nconst urls = text.match(urlRegex) || [];\n\n// Extract context and instructions\nconst contextText = text.replace(urlRegex, '').trim();\n\nreturn {\n  json: {\n    extracted_urls: urls,\n    context_text: contextText,\n    chat_id: $('Telegram Trigger').item.json.message.chat.id,\n    user_name: $('Telegram Trigger').item.json.message.from.first_name || 'User',\n    original_text: text\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        400
+      ],
+      "id": "url-extractor",
+      "name": "URL Extractor & Context Parser"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.extracted_urls.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        200,
+        400
+      ],
+      "id": "url-validator",
+      "name": "URL Validator"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "🚫 No valid URLs found in your message. Please send a social media URL (YouTube, TikTok, Instagram, etc.) to extract audio from.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        600
+      ],
+      "id": "no-url-response",
+      "name": "No URL Response"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "🎵 Processing your request...\n\n📋 Found URL: {{ $json.extracted_urls[0] }}\n💭 Context: {{ $json.context_text || 'Creating engaging video content' }}\n\n⏳ This may take a few minutes. Please wait...",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        400,
+        300
+      ],
+      "id": "processing-notification",
+      "name": "Processing Notification"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://52.0.132.35:8000/extract-audio",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"url\": \"{{ $json.extracted_urls[0] }}\",\n  \"format\": \"mp3\",\n  \"quality\": \"192\",\n  \"return_url\": false\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "extracted_audio"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        300
+      ],
+      "id": "audio-extractor",
+      "name": "Audio Extractor API"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Based on the social media URL: {{ $('URL Extractor & Context Parser').item.json.extracted_urls[0] }}\nAnd user context: {{ $('URL Extractor & Context Parser').item.json.context_text || 'Create engaging content' }}\n\nGenerate:\n1. An engaging video title (max 60 characters)\n2. A detailed visual prompt for video generation that describes:\n   - Visual style and aesthetic\n   - Color scheme and mood\n   - Character or subject description\n   - Background and environment\n   - Animation style and movement\n   - Any specific visual effects\n\nReturn as JSON with keys: 'title' and 'visual_prompt'"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        800,
+        300
+      ],
+      "id": "content-enhancer",
+      "name": "AI Content Enhancer"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hedra.com/web-app/public/assets",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"name\": \"extracted-audio-{{ $now() }}\",\n  \"type\": \"audio\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        200
+      ],
+      "id": "create-audio-asset",
+      "name": "Create Audio Asset (Hedra)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hedra.com/web-app/public/assets",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"name\": \"video-image-{{ $now() }}\",\n  \"type\": \"image\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        400
+      ],
+      "id": "create-image-asset",
+      "name": "Create Image Asset (Hedra)"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "model": "dall-e-3",
+        "prompt": "={{ $json.message.content.visual_prompt }}",
+        "options": {
+          "size": "1024x1024",
+          "quality": "standard"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1200,
+        400
+      ],
+      "id": "generate-image",
+      "name": "Generate Image (OpenAI)"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        1200,
+        250
+      ],
+      "id": "merge-audio-metadata",
+      "name": "Merge Audio & Metadata"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        1400,
+        350
+      ],
+      "id": "merge-image-metadata",
+      "name": "Merge Image & Metadata"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare audio asset for upload\nconst audioItem = items.find(i => i.binary && i.binary.extracted_audio);\nconst audioMetadata = items.find(i => i.json && i.json.id && i.json.type === 'audio');\n\nreturn [\n  {\n    json: {\n      id: audioMetadata.json.id,\n      type: audioMetadata.json.type,\n      name: audioMetadata.json.name || 'extracted-audio'\n    },\n    binary: {\n      data: {\n        ...audioItem.binary.extracted_audio,\n        fileName: 'extracted_audio.mp3',\n        mimeType: 'audio/mpeg',\n        fileExtension: 'mp3'\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        200
+      ],
+      "id": "prepare-audio-upload",
+      "name": "Prepare Audio Upload"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare image asset for upload\nconst imageItem = items.find(i => i.binary && i.binary.data);\nconst imageMetadata = items.find(i => i.json && i.json.id && i.json.type === 'image');\n\nreturn [\n  {\n    json: {\n      id: imageMetadata.json.id,\n      type: imageMetadata.json.type,\n      name: imageMetadata.json.name || 'video-image'\n    },\n    binary: {\n      data: imageItem.binary.data\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        400
+      ],
+      "id": "prepare-image-upload",
+      "name": "Prepare Image Upload"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.hedra.com/web-app/public/assets/{{ $json.id }}/upload",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1600,
+        200
+      ],
+      "id": "upload-audio-asset",
+      "name": "Upload Audio Asset"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.hedra.com/web-app/public/assets/{{ $json.id }}/upload",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1800,
+        400
+      ],
+      "id": "upload-image-asset",
+      "name": "Upload Image Asset"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        1800,
+        250
+      ],
+      "id": "merge-uploaded-assets",
+      "name": "Merge Uploaded Assets"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract asset IDs from uploaded assets\nlet audioAssetId = null;\nlet imageAssetId = null;\n\nfor (const item of items) {\n  const { type, id } = item.json;\n  \n  if (type === 'audio') {\n    audioAssetId = id;\n  } else if (type === 'image') {\n    imageAssetId = id;\n  }\n}\n\n// Get the enhanced content\nconst contentData = $('AI Content Enhancer').item.json.message.content;\n\nreturn [\n  {\n    json: {\n      audio_asset_id: audioAssetId,\n      image_asset_id: imageAssetId,\n      title: contentData.title,\n      visual_prompt: contentData.visual_prompt,\n      chat_id: $('URL Extractor & Context Parser').item.json.chat_id\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        250
+      ],
+      "id": "prepare-video-generation",
+      "name": "Prepare Video Generation"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hedra.com/web-app/public/generations",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"video\",\n  \"ai_model_id\": \"d1dd37a3-e39a-4854-a298-6510289f9cf2\",\n  \"start_keyframe_id\": \"{{ $json.image_asset_id }}\",\n  \"audio_id\": \"{{ $json.audio_asset_id }}\",\n  \"generated_video_inputs\": {\n    \"text_prompt\": \"{{ $json.visual_prompt }}\",\n    \"resolution\": \"720p\",\n    \"aspect_ratio\": \"9:16\",\n    \"duration_ms\": 15000\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        250
+      ],
+      "id": "create-video",
+      "name": "Create Video (Hedra)"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "🎬 Video generation started!\n\n📹 Title: {{ $json.title }}\n⏱️ This will take approximately 3-5 minutes...\n\n🔄 Please wait while we create your video...",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2200,
+        450
+      ],
+      "id": "video-generation-notification",
+      "name": "Video Generation Notification"
+    },
+    {
+      "parameters": {
+        "unit": "minutes",
+        "amount": 3
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2400,
+        250
+      ],
+      "id": "wait-for-video",
+      "name": "Wait for Video Generation"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.hedra.com/web-app/public/assets?type=video&ids={{ $json.asset_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2600,
+        250
+      ],
+      "id": "check-video-status",
+      "name": "Check Video Status"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.asset && $json.asset.url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2800,
+        250
+      ],
+      "id": "video-ready-check",
+      "name": "Video Ready Check"
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2800,
+        450
+      ],
+      "id": "wait-retry",
+      "name": "Wait & Retry"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.asset.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3000,
+        150
+      ],
+      "id": "download-video",
+      "name": "Download Generated Video"
+    },
+    {
+      "parameters": {
+        "name": "={{ $('Prepare Video Generation').item.json.title }}-{{ $now() }}.mp4",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1Ds8LDWR4FC6dcEenZHhjFXko_AhRxH2c",
+          "mode": "list"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        3200,
+        150
+      ],
+      "id": "backup-to-drive",
+      "name": "Backup to Google Drive"
+    },
+    {
+      "parameters": {
+        "operation": "sendVideo",
+        "chatId": "={{ $('Prepare Video Generation').item.json.chat_id }}",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "additionalFields": {
+          "caption": "🎬 Your video is ready!\n\n📹 {{ $('Prepare Video Generation').item.json.title }}\n🎵 Extracted from: {{ $('URL Extractor & Context Parser').item.json.extracted_urls[0] }}\n\n✨ Generated with AI magic!",
+          "width": 720,
+          "height": 1280
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3400,
+        150
+      ],
+      "id": "send-video-telegram",
+      "name": "Send Video to Telegram"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('URL Extractor & Context Parser').item.json.chat_id }}",
+        "text": "❌ Sorry, there was an error processing your request.\n\nPossible reasons:\n• Invalid or unsupported URL\n• Audio extraction failed\n• Video generation timeout\n\nPlease try again with a different URL or contact support.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3000,
+        450
+      ],
+      "id": "error-notification",
+      "name": "Error Notification"
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Input Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Classifier": {
+      "main": [
+        [
+          {
+            "node": "Download Voice File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download Voice File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "URL Extractor & Context Parser",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "URL Extractor & Context Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Voice File": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Audio": {
+      "main": [
+        [
+          {
+            "node": "URL Extractor & Context Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "URL Extractor & Context Parser": {
+      "main": [
+        [
+          {
+            "node": "URL Validator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "URL Validator": {
+      "main": [
+        [
+          {
+            "node": "Processing Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No URL Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processing Notification": {
+      "main": [
+        [
+          {
+            "node": "Audio Extractor API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audio Extractor API": {
+      "main": [
+        [
+          {
+            "node": "AI Content Enhancer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Audio Asset (Hedra)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Content Enhancer": {
+      "main": [
+        [
+          {
+            "node": "Create Image Asset (Hedra)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Audio Asset (Hedra)": {
+      "main": [
+        [
+          {
+            "node": "Merge Audio & Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Image Asset (Hedra)": {
+      "main": [
+        [
+          {
+            "node": "Generate Image (OpenAI)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Image & Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Image (OpenAI)": {
+      "main": [
+        [
+          {
+            "node": "Merge Image & Metadata",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Audio & Metadata": {
+      "main": [
+        [
+          {
+            "node": "Prepare Audio Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Image & Metadata": {
+      "main": [
+        [
+          {
+            "node": "Prepare Image Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Audio Upload": {
+      "main": [
+        [
+          {
+            "node": "Upload Audio Asset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Image Upload": {
+      "main": [
+        [
+          {
+            "node": "Upload Image Asset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Audio Asset": {
+      "main": [
+        [
+          {
+            "node": "Merge Uploaded Assets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Image Asset": {
+      "main": [
+        [
+          {
+            "node": "Merge Uploaded Assets",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Uploaded Assets": {
+      "main": [
+        [
+          {
+            "node": "Prepare Video Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Video Generation": {
+      "main": [
+        [
+          {
+            "node": "Create Video (Hedra)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Video Generation Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Video (Hedra)": {
+      "main": [
+        [
+          {
+            "node": "Wait for Video Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Video Generation": {
+      "main": [
+        [
+          {
+            "node": "Check Video Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Video Status": {
+      "main": [
+        [
+          {
+            "node": "Video Ready Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video Ready Check": {
+      "main": [
+        [
+          {
+            "node": "Download Generated Video",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait & Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait & Retry": {
+      "main": [
+        [
+          {
+            "node": "Check Video Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Generated Video": {
+      "main": [
+        [
+          {
+            "node": "Backup to Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Backup to Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Send Video to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "SocialMediaAudioExtractor",
+  "tags": ["social-media", "audio-extraction", "video-generation", "telegram", "hedra"]
+} 

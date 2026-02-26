@@ -1,0 +1,890 @@
+{
+    "name": "01_Video_Generator_Agent",
+    "nodes": [
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "fe7ecc99-e1e8-4a5e-bdd6-6fce9757b234",
+                "name": "text",
+                "value": "={{ $json.message.text || $json.message.caption || '' }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "771f6302-4c85-46c2-b4fe-f38d5750f83f",
+        "name": "Set 'Text'",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          6680,
+          1940
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// Enhanced URL extraction from user messages\nconst inputText = ($json.text || '').split(/\\n+/).join(' ').trim();\n\nconsole.log('🔍 URL EXTRACTION START');\nconsole.log('📥 Input text:', inputText);\n\n// Social media URL patterns (YouTube, Instagram, TikTok, Twitter, Facebook, Vimeo)\nconst urlPatterns = [\n  /https?:\\/\\/(?:www\\.)?(youtube\\.com\\/watch\\?v=[a-zA-Z0-9_-]+|youtu\\.be\\/[a-zA-Z0-9_-]+)/gi,\n  /https?:\\/\\/(?:www\\.)?instagram\\.com\\/(p|reel|tv)\\/[a-zA-Z0-9_-]+\\/?[^\\s]*/gi,\n  /https?:\\/\\/(?:www\\.)?tiktok\\.com\\/@[^/]+\\/video\\/\\d+[^\\s]*/gi,\n  /https?:\\/\\/(?:www\\.)?(twitter\\.com|x\\.com)\\/[^\\/]+\\/status\\/\\d+[^\\s]*/gi,\n  /https?:\\/\\/(?:www\\.)?(facebook\\.com\\/.*\\/videos\\/\\d+|fb\\.watch\\/[a-zA-Z0-9_-]+)/gi,\n  /https?:\\/\\/(?:www\\.)?vimeo\\.com\\/\\d+[^\\s]*/gi\n];\n\nlet extractedUrls = [];\n\n// Try each pattern\nfor (let pattern of urlPatterns) {\n  const matches = inputText.match(pattern);\n  if (matches && matches.length > 0) {\n    extractedUrls = extractedUrls.concat(matches);\n  }\n}\n\n// Remove duplicates\nconst uniqueUrls = [...new Set(extractedUrls)];\n\n// Prefer social media URLs\nconst socialMediaUrls = uniqueUrls.filter(url =>\n  url.includes('youtube.com') ||\n  url.includes('youtu.be') ||\n  url.includes('instagram.com') ||\n  url.includes('tiktok.com') ||\n  url.includes('twitter.com') ||\n  url.includes('x.com') ||\n  url.includes('facebook.com') ||\n  url.includes('fb.watch') ||\n  url.includes('vimeo.com')\n);\n\nlet finalUrl = socialMediaUrls.length > 0 ? socialMediaUrls[0] : '';\n\nconsole.log('📊 EXTRACTION RESULTS:');\nconsole.log('  - All found URLs:', extractedUrls);\nconsole.log('  - Final selected URL:', finalUrl);\nconsole.log('  - URL length:', finalUrl.length);\nconsole.log('🔍 URL EXTRACTION END');\n\nreturn {\n  json: {\n    text: inputText,\n    extracted_url: finalUrl,\n    all_urls: extractedUrls,\n    has_url: finalUrl.length > 0\n  }\n};"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          6840,
+          1940
+        ],
+        "id": "c7652603-c8d8-4367-b962-2a8184ff6ce1",
+        "name": "URL Extractor"
+      },
+      {
+        "parameters": {
+          "name": "extractAudio",
+          "description": "Extract audio from social media URLs (YouTube, TikTok, Instagram, etc.)",
+          "workflowId": {
+            "__rl": true,
+            "value": "CbMFlPFSx59LHPbr",
+            "mode": "list",
+            "cachedResultName": "02_Audio_Extractor"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "url": "={{ $('URL Extractor').item.json.extracted_url }}",
+              "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+              "format": "mp3",
+              "quality": "192"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "url",
+                "displayName": "url",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "chatId",
+                "displayName": "chatId",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "format",
+                "displayName": "format",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "quality",
+                "displayName": "quality",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.1,
+        "position": [
+          7060,
+          2280
+        ],
+        "id": "416dff1f-f63f-4fb0-8423-d7c9938757c9",
+        "name": "Audio Extractor Tool"
+      },
+      {
+        "parameters": {
+          "name": "transcribeAudio",
+          "description": "Transcribe voice messages from Telegram",
+          "workflowId": {
+            "__rl": true,
+            "value": "transcription-workflow-id",
+            "mode": "list"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "fileId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fileId', 'The Telegram voice file ID to transcribe', 'string') }}",
+              "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}"
+            }
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.1,
+        "position": [
+          7220,
+          2280
+        ],
+        "id": "03c5e285-784c-412e-b10d-6fdafbba68d4",
+        "name": "Transcription Tool"
+      },
+      {
+        "parameters": {
+          "name": "generateVideo",
+          "description": "Generate video from audio and context using AI",
+          "workflowId": {
+            "__rl": true,
+            "value": "video-generator-workflow-id",
+            "mode": "list"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "audioData": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('audioData', 'The extracted audio data', 'string') }}",
+              "context": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('context', 'Context and instructions for video generation', 'string') }}",
+              "title": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('title', 'Video title (max 60 characters)', 'string') }}",
+              "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}"
+            }
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.1,
+        "position": [
+          7400,
+          2340
+        ],
+        "id": "e9b4738c-e7e4-4083-bf35-306831641f0b",
+        "name": "Video Generator Tool"
+      },
+      {
+        "parameters": {
+          "name": "enhanceContent",
+          "description": "Enhance content with AI-generated titles and visual prompts",
+          "workflowId": {
+            "__rl": true,
+            "value": "content-enhancer-workflow-id",
+            "mode": "list"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "url": "={{ $('URL Extractor').item.json.extracted_url }}",
+              "context": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('context', 'User context and requirements', 'string') }}",
+              "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}"
+            }
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.1,
+        "position": [
+          7540,
+          2360
+        ],
+        "id": "600d40f9-9637-478b-8d65-2323f4e9e615",
+        "name": "Content Enhancer Tool"
+      },
+      {
+        "parameters": {
+          "values": {
+            "string": [
+              {
+                "name": "memoryText",
+                "value": "={{$json.text}}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "name": "Prepare Memory Text",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 1,
+        "position": [
+          6550,
+          2250
+        ],
+        "id": "prepare-memory-text-node-id"
+      },
+      {
+        "parameters": {
+          "sessionIdType": "customKey",
+          "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+          "inputKey": "memoryText"
+        },
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "typeVersion": 1.3,
+        "position": [
+          6700,
+          2280
+        ],
+        "id": "325a38c8-b81d-47f6-99be-b03962a040c3",
+        "name": "Simple Memory"
+      },
+      {
+        "parameters": {
+          "content": "# Trigger\n",
+          "height": 400,
+          "width": 360,
+          "color": 6
+        },
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          6140,
+          1700
+        ],
+        "id": "2ab708c4-9979-466c-a615-54ac2be66340",
+        "name": "Sticky Note1"
+      },
+      {
+        "parameters": {
+          "content": "# Voice or Text",
+          "height": 400,
+          "width": 420,
+          "color": 7
+        },
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          6520,
+          1700
+        ],
+        "id": "5bc51c09-ff94-4dc3-b8cd-14b49f78d82c",
+        "name": "Sticky Note7"
+      },
+      {
+        "parameters": {
+          "content": "# AI Video Agent",
+          "height": 400,
+          "width": 460
+        },
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          7060,
+          1700
+        ],
+        "id": "f730c064-5f02-4792-8dbe-92a3f59806c0",
+        "name": "Sticky Note"
+      },
+      {
+        "parameters": {},
+        "type": "@n8n/n8n-nodes-langchain.toolThink",
+        "typeVersion": 1,
+        "position": [
+          6840,
+          2280
+        ],
+        "id": "7a7a1d0a-54f9-449d-96aa-f1f22fb0d1c7",
+        "name": "Think"
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "value": "gpt-4o",
+            "mode": "list",
+            "cachedResultName": "gpt-4o"
+          },
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1.2,
+        "position": [
+          6560,
+          2280
+        ],
+        "id": "764e0030-1e4d-4723-ba52-13e23377c7a6",
+        "name": "OpenAI Chat Model",
+        "credentials": {
+          "openAiApi": {
+            "id": "ftizHx9vUKJZtu7h",
+            "name": "OpenAi account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "name": "createImage",
+          "description": "Call this tool to create an image. ",
+          "workflowId": {
+            "__rl": true,
+            "value": "lsZTPeThp35cB3Hs",
+            "mode": "list",
+            "cachedResultName": "Create Image"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "chatID": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+              "imagePrompt": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('imagePrompt', `The image requested by the user`, 'string') }}",
+              "imageTitle": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('imageTitle', `The title of the image. Should be no more than 4 words.`, 'string') }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "imageTitle",
+                "displayName": "imageTitle",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "imagePrompt",
+                "displayName": "imagePrompt",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "chatID",
+                "displayName": "chatID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.1,
+        "position": [
+          7740,
+          2280
+        ],
+        "id": "f5e5b418-6812-49cd-a775-f77146d9bc44",
+        "name": "Create Image"
+      },
+      {
+        "parameters": {
+          "name": "editImage",
+          "description": "Call this tool to edit an image.",
+          "workflowId": {
+            "__rl": true,
+            "value": "nMBpMe21l4gDEjOI",
+            "mode": "list",
+            "cachedResultName": "Edit Image"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "image": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('image', `The title of the image the user wants to edit`, 'string') }}",
+              "chatID": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+              "request": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('request', `The edit the user wants to make to the image`, 'string') }}",
+              "pictureID": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('pictureID', `The ID of the image to edit`, 'string') }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "image",
+                "displayName": "image",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "request",
+                "displayName": "request",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "chatID",
+                "displayName": "chatID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "pictureID",
+                "displayName": "pictureID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.1,
+        "position": [
+          7900,
+          2280
+        ],
+        "id": "7074de14-dea0-4943-a62c-7ea6bf2b966c",
+        "name": "Edit Image"
+      },
+      {
+        "parameters": {
+          "name": "searchImages",
+          "description": "Call this tool to search the image database.",
+          "workflowId": {
+            "__rl": true,
+            "value": "zDYAKGCIEChJa1JH",
+            "mode": "list",
+            "cachedResultName": "Search Images"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "intent": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('intent', `The intent of the user. This can either be \\\"Get\\\" or \\\"Edit\\\"`, 'string') }}",
+              "image": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('image', `The image title`, 'string') }}",
+              "chatID": "={{ $('Telegram Trigger').item.json.message.chat.id }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "intent",
+                "displayName": "intent",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "image",
+                "displayName": "image",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string",
+                "removed": false
+              },
+              {
+                "id": "chatID",
+                "displayName": "chatID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.1,
+        "position": [
+          8140,
+          2280
+        ],
+        "id": "4b083dc7-a036-4c12-afd9-3b96b9217442",
+        "name": "Search Images"
+      },
+      {
+        "parameters": {
+          "content": "# Image Creation",
+          "height": 220,
+          "width": 320,
+          "color": 3
+        },
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          7700,
+          2200
+        ],
+        "id": "2b998db8-f50f-49f3-a683-83f7baf3e621",
+        "name": "Sticky Note3"
+      },
+      {
+        "parameters": {
+          "content": "# Image Database",
+          "height": 220,
+          "width": 300,
+          "color": 4
+        },
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          8040,
+          2200
+        ],
+        "id": "7f1aa0fc-8059-490d-848d-b1f5b1dcd226",
+        "name": "Sticky Note4"
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "={{ $json.text }}",
+          "options": {
+            "systemMessage": "# Overview\nYou are a Video Generator Agent that helps users create videos from social media content.\n\n## Your Capabilities:\n1. **Extract Audio**: Extract audio from social media URLs (YouTube, TikTok, Instagram, etc.)\n2. **Transcribe Voice**: Convert Telegram voice messages to text\n3. **Generate Videos**: Create engaging videos with AI-generated visuals\n4. **Enhance Content**: Generate titles and visual prompts for better engagement\n\n## Workflow:\n1. When users send a URL with text/voice, extract the URL and context\n2. Use extractAudio tool to get audio from the URL\n3. Use enhanceContent tool to generate title and visual prompts\n4. Use generateVideo tool to create the final video\n5. For voice messages, use transcribeAudio first to get the text\n\n## Instructions:\n- Always be helpful and guide users through the process\n- Provide status updates during video generation\n- Handle errors gracefully with helpful messages\n- Support multiple social media platforms\n- Generate engaging titles (max 60 characters)\n- Create detailed visual prompts for video generation\n\n## Input Types:\n- Text with URLs\n- Voice messages with URLs\n- Voice messages only\n- Text only\n\nAlways respond naturally and use the appropriate tools to fulfill user requests."
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 1.9,
+        "position": [
+          7160,
+          1840
+        ],
+        "id": "cead546a-0d43-4ef6-9d02-b68807779709",
+        "name": "Video_Agent"
+      },
+      {
+        "parameters": {
+          "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+          "text": "={{ $json.output }}",
+          "additionalFields": {
+            "appendAttribution": false
+          }
+        },
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          7620,
+          1840
+        ],
+        "id": "12bab659-fcb2-4071-bc31-28ddef73d945",
+        "name": "Telegram",
+        "webhookId": "fbdb3bd7-490b-4d3e-961e-e2d398294649",
+        "credentials": {
+          "telegramApi": {
+            "id": "T25o1IJ66SgTLCmw",
+            "name": "HassiAI"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "updates": [
+            "message"
+          ],
+          "additionalFields": {}
+        },
+        "id": "65e6359c-516c-4279-b748-b2f23a6239a8",
+        "name": "Telegram Trigger",
+        "type": "n8n-nodes-base.telegramTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          6200,
+          1860
+        ],
+        "webhookId": "99eab1a0-569d-4f0f-a49e-578a02abfe63",
+        "credentials": {
+          "telegramApi": {
+            "id": "T25o1IJ66SgTLCmw",
+            "name": "HassiAI"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.message.voice.file_id }}",
+                      "rightValue": "",
+                      "operator": {
+                        "type": "string",
+                        "operation": "exists",
+                        "singleValue": true
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "Voice"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "id": "8c844924-b2ed-48b0-935c-c66a8fd0c778",
+                      "leftValue": "={{ $json.message.text }}",
+                      "rightValue": "",
+                      "operator": {
+                        "type": "string",
+                        "operation": "exists",
+                        "singleValue": true
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "Text"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "3f067389-31c8-46b9-8f7b-76949b5d9b75",
+        "name": "Switch",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.2,
+        "position": [
+          6340,
+          1860
+        ]
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Prepare Memory Text": {
+        "main": [
+          [
+            {
+              "node": "Simple Memory",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Switch": {
+        "main": [
+          [
+            {
+              "node": "Download Voice File",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Set 'Text'",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Transcribe Audio": {
+        "main": [
+          [
+            {
+              "node": "Video_Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set 'Text'": {
+        "main": [
+          [
+            {
+              "node": "URL Extractor",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "URL Extractor": {
+        "main": [
+          [
+            {
+              "node": "Video_Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Memory Text": {
+        "main": [
+          [
+            {
+              "node": "Simple Memory",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Simple Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "Video_Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Think": {
+        "ai_tool": [
+          [
+            {
+              "node": "Video_Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Video_Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Video_Agent": {
+        "main": [
+          [
+            {
+              "node": "Telegram",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Telegram Trigger": {
+        "main": [
+          [
+            {
+              "node": "Switch",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Audio Extractor Tool": {
+        "ai_tool": [
+          [
+            {
+              "node": "Video_Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Transcription Tool": {
+        "ai_tool": [
+          [
+            {
+              "node": "Video_Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Video Generator Tool": {
+        "ai_tool": [
+          [
+            {
+              "node": "Video_Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Content Enhancer Tool": {
+        "ai_tool": [
+          [
+            {
+              "node": "Video_Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create Image": {
+        "ai_tool": [
+          [
+            {
+              "node": "Video_Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Edit Image": {
+        "ai_tool": [
+          [
+            {
+              "node": "Video_Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Search Images": {
+        "ai_tool": [
+          [
+            {
+              "node": "Video_Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "152418d1-922a-488b-8482-249e974471c6",
+    "meta": {
+      "templateCredsSetupCompleted": true,
+      "instanceId": "d51eb297ec6c4d11c17253651670a5959a4fedeb006ead64cd58a47dbe8e7044"
+    },
+    "id": "R9tqWnBQYDgmIckn",
+    "tags": []
+  }
+  

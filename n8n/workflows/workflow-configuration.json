@@ -1,0 +1,213 @@
+{
+  "workflow_configuration": {
+    "description": "Configuration for Social Media Audio Extractor Modular System",
+    "version": "1.0.0",
+    "modules": {
+      "main_agent": {
+        "name": "Video Generator Agent",
+        "file": "01_Video_Generator_Agent.json",
+        "id": "VideoGeneratorAgent",
+        "description": "Main coordinator workflow that handles user interactions",
+        "dependencies": ["audio_extractor", "transcription_service", "content_enhancer", "video_generator"]
+      },
+      "audio_extractor": {
+        "name": "Audio Extractor",
+        "file": "02_Audio_Extractor.json",
+        "id": "AudioExtractor",
+        "description": "Extracts audio from social media URLs",
+        "dependencies": []
+      },
+      "transcription_service": {
+        "name": "Transcription Service",
+        "file": "03_Transcription_Service.json",
+        "id": "TranscriptionService",
+        "description": "Transcribes voice messages using OpenAI Whisper",
+        "dependencies": []
+      },
+      "content_enhancer": {
+        "name": "Content Enhancer",
+        "file": "04_Content_Enhancer.json",
+        "id": "ContentEnhancer",
+        "description": "Generates AI-enhanced titles and visual prompts",
+        "dependencies": []
+      },
+      "video_generator": {
+        "name": "Video Generator",
+        "file": "05_Video_Generator.json",
+        "id": "VideoGenerator",
+        "description": "Complete video generation pipeline using Hedra API",
+        "dependencies": []
+      }
+    },
+    "tool_workflow_mappings": {
+      "extractAudio": {
+        "workflow_name": "Audio Extractor",
+        "workflow_id_placeholder": "audio-extractor-workflow-id",
+        "inputs": ["url", "chatId", "format", "quality"]
+      },
+      "transcribeAudio": {
+        "workflow_name": "Transcription Service",
+        "workflow_id_placeholder": "transcription-workflow-id",
+        "inputs": ["fileId", "chatId"]
+      },
+      "enhanceContent": {
+        "workflow_name": "Content Enhancer",
+        "workflow_id_placeholder": "content-enhancer-workflow-id",
+        "inputs": ["url", "context", "chatId"]
+      },
+      "generateVideo": {
+        "workflow_name": "Video Generator",
+        "workflow_id_placeholder": "video-generator-workflow-id",
+        "inputs": ["audioData", "context", "title", "chatId"]
+      }
+    },
+    "required_credentials": {
+      "telegram": {
+        "type": "telegramApi",
+        "description": "Telegram Bot API for bot functionality",
+        "required_for": ["main_agent", "audio_extractor", "transcription_service", "content_enhancer", "video_generator"]
+      },
+      "openai": {
+        "type": "openAiApi",
+        "description": "OpenAI API for transcription and image generation",
+        "required_for": ["transcription_service", "content_enhancer", "video_generator"]
+      },
+      "hedra": {
+        "type": "httpCustomAuth",
+        "description": "Hedra API for video generation",
+        "required_for": ["video_generator"]
+      },
+      "google_drive": {
+        "type": "googleDriveOAuth2Api",
+        "description": "Google Drive for video backup",
+        "required_for": ["video_generator"]
+      }
+    },
+    "external_services": {
+      "audio_extraction_api": {
+        "url": "http://52.0.132.35:8000/extract-audio",
+        "description": "External service for social media audio extraction",
+        "timeout": 120000,
+        "required_for": ["audio_extractor"]
+      },
+      "hedra_api": {
+        "base_url": "https://api.hedra.com/web-app/public",
+        "description": "Hedra API for video generation",
+        "endpoints": {
+          "assets": "/assets",
+          "upload": "/assets/{id}/upload",
+          "generations": "/generations"
+        },
+        "required_for": ["video_generator"]
+      }
+    },
+    "setup_instructions": {
+      "step_1": {
+        "title": "Import Workflows",
+        "description": "Import all workflow JSON files in dependency order",
+        "order": [
+          "02_Audio_Extractor.json",
+          "03_Transcription_Service.json", 
+          "04_Content_Enhancer.json",
+          "05_Video_Generator.json",
+          "01_Video_Generator_Agent.json"
+        ]
+      },
+      "step_2": {
+        "title": "Configure Workflow IDs",
+        "description": "Update the main agent workflow with actual workflow IDs from your n8n instance",
+        "locations": [
+          {
+            "node": "Audio Extractor Tool",
+            "parameter": "workflowId.value",
+            "placeholder": "audio-extractor-workflow-id"
+          },
+          {
+            "node": "Transcription Tool", 
+            "parameter": "workflowId.value",
+            "placeholder": "transcription-workflow-id"
+          },
+          {
+            "node": "Content Enhancer Tool",
+            "parameter": "workflowId.value", 
+            "placeholder": "content-enhancer-workflow-id"
+          },
+          {
+            "node": "Video Generator Tool",
+            "parameter": "workflowId.value",
+            "placeholder": "video-generator-workflow-id"
+          }
+        ]
+      },
+      "step_3": {
+        "title": "Setup Credentials",
+        "description": "Configure all required API credentials",
+        "credentials": [
+          "Telegram Bot API",
+          "OpenAI API", 
+          "Hedra API (HTTP Custom Auth)",
+          "Google Drive OAuth2"
+        ]
+      },
+      "step_4": {
+        "title": "Configure External Services",
+        "description": "Ensure external services are accessible",
+        "services": [
+          "Audio extraction API service",
+          "Hedra video generation API",
+          "Google Drive folder permissions"
+        ]
+      },
+      "step_5": {
+        "title": "Test Individual Modules",
+        "description": "Test each module independently before testing the complete system",
+        "testing_order": [
+          "Audio Extractor",
+          "Transcription Service",
+          "Content Enhancer", 
+          "Video Generator",
+          "Main Agent"
+        ]
+      }
+    },
+    "tagging_conventions": {
+      "module_tags": {
+        "#MainAgent": "Main coordination and user interface logic",
+        "#Input": "Input processing and validation",
+        "#Tools": "Tool workflow integrations",
+        "#URLProcessing": "URL validation and platform detection",
+        "#AudioExtraction": "Audio processing and extraction",
+        "#ResultProcessing": "Result validation and formatting",
+        "#InputValidation": "Input parameter validation",
+        "#VoiceProcessing": "Voice message handling",
+        "#ContentAnalysis": "Content analysis and processing",
+        "#AIEnhancement": "AI-powered content enhancement",
+        "#ResponseProcessing": "AI response validation and formatting",
+        "#AssetCreation": "Asset creation for video generation",
+        "#AssetUpload": "Asset upload to external services",
+        "#VideoGeneration": "Video generation pipeline",
+        "#Delivery": "Final output delivery and backup"
+      },
+      "color_coding": {
+        "5": "Input/Processing (Blue)",
+        "3": "Core Operations (Green)",
+        "7": "AI/Enhancement (Yellow)",
+        "4": "Output/Delivery (Red)"
+      }
+    },
+    "monitoring": {
+      "key_metrics": [
+        "Workflow execution success rate",
+        "Average processing time per module",
+        "Error rates by module",
+        "User satisfaction (based on completion rates)"
+      ],
+      "error_handling": [
+        "Module-level error notifications",
+        "User-friendly error messages",
+        "Fallback mechanisms",
+        "Retry logic for transient failures"
+      ]
+    }
+  }
+} 

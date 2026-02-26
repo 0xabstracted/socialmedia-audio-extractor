@@ -1,0 +1,407 @@
+{
+  "name": "02_Audio_Extractor",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "url"
+            },
+            {
+              "name": "chatId"
+            },
+            {
+              "name": "format"
+            },
+            {
+              "name": "quality"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1180,
+        -240
+      ],
+      "id": "653bdc98-931f-474a-a45d-12e6cfd16764",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Simplified URL processor - trust the main workflow's validation\nconst url = $json.url || '';\nconst chatId = $json.chatId;\nconst format = $json.format || 'mp3';\nconst quality = $json.quality || '192';\n\nconsole.log('🔍 AUDIO EXTRACTOR URL PROCESSING START');\nconsole.log('📥 Received URL from main workflow:', url);\nconsole.log('👤 Chat ID:', chatId);\nconsole.log('🎵 Format:', format);\nconsole.log('⚡ Quality:', quality);\n\n// Since URL is already validated in main workflow, just detect platform\nlet platform = 'unknown';\nlet isValidUrl = true; // Trust the main workflow validation\n\n// Simple platform detection\nif (url.includes('youtube.com') || url.includes('youtu.be')) {\n  platform = 'youtube';\n} else if (url.includes('tiktok.com')) {\n  platform = 'tiktok';\n} else if (url.includes('instagram.com')) {\n  platform = 'instagram';\n} else if (url.includes('twitter.com') || url.includes('x.com')) {\n  platform = 'twitter';\n} else if (url.includes('facebook.com') || url.includes('fb.watch')) {\n  platform = 'facebook';\n} else if (url.includes('vimeo.com')) {\n  platform = 'vimeo';\n} else if (url.length > 10 && (url.startsWith('http://') || url.startsWith('https://'))) {\n  platform = 'other';\n  isValidUrl = true;\n} else {\n  platform = 'unknown';\n  isValidUrl = false;\n}\n\nconsole.log('📊 PROCESSING RESULTS:');\nconsole.log('  - Detected Platform:', platform);\nconsole.log('  - URL Valid:', isValidUrl);\nconsole.log('  - URL Length:', url.length);\nconsole.log('🔍 AUDIO EXTRACTOR URL PROCESSING END');\n\nreturn {\n  json: {\n    url: url,\n    chat_id: chatId,\n    format: format,\n    quality: quality,\n    platform: platform,\n    is_valid_url: isValidUrl\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1000,
+        -240
+      ],
+      "id": "0132ef87-6ad8-4375-b3e4-bd269e73cbd2",
+      "name": "URL Processor"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.is_valid_url }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              },
+              "id": "a631c2a8-d8b8-40fe-a97a-000bd44f944a"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -840,
+        -240
+      ],
+      "id": "9d0b0f32-d0b7-4b9f-b674-8f737140f204",
+      "name": "URL Validator"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "🚫 Invalid URL provided. Please send a valid social media URL (YouTube, TikTok, Instagram, etc.)",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -600,
+        -40
+      ],
+      "id": "7ef2938c-d7a2-4906-b009-3debb4a6c67b",
+      "name": "Invalid URL Response",
+      "webhookId": "a6442ef9-98eb-4519-b1b4-0981e090115d",
+      "credentials": {
+        "telegramApi": {
+          "id": "T25o1IJ66SgTLCmw",
+          "name": "HassiAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "🎵 Extracting audio from {{ $json.platform }} URL...\n📱 Platform: {{ $json.platform.toUpperCase() }}\n🔗 URL: {{ $json.url }}\n\n⏳ This may take a few moments...",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -520,
+        -340
+      ],
+      "id": "0692f932-458f-40dc-bdd6-2e97da05edbb",
+      "name": "Extraction Notification",
+      "webhookId": "233e6540-3cdc-4b66-bcb8-0e683d9b4baa",
+      "credentials": {
+        "telegramApi": {
+          "id": "T25o1IJ66SgTLCmw",
+          "name": "HassiAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://52.0.132.35:8000/extract-audio",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"url\": \"{{ $json.url }}\",\n  \"format\": \"{{ $json.format }}\",\n  \"quality\": \"{{ $json.quality }}\",\n  \"return_url\": false\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "extracted_audio"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -320,
+        -340
+      ],
+      "id": "e00f63f0-06d0-4e13-ae7b-d59812c647ca",
+      "name": "Audio Extractor API"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process extraction result\nconst audioData = $json.binary?.extracted_audio;\nconst originalInput = $('URL Processor').item.json;\n\nif (audioData) {\n  return {\n    json: {\n      success: true,\n      chat_id: originalInput.chat_id,\n      url: originalInput.url,\n      platform: originalInput.platform,\n      format: originalInput.format,\n      audio_duration: audioData.fileSize ? Math.round(audioData.fileSize / 16000) : null, // Estimate duration\n      message: `✅ Audio extracted successfully from ${originalInput.platform}!`\n    },\n    binary: {\n      audio: audioData\n    }\n  };\n} else {\n  return {\n    json: {\n      success: false,\n      chat_id: originalInput.chat_id,\n      url: originalInput.url,\n      platform: originalInput.platform,\n      error: 'Failed to extract audio from the provided URL',\n      message: `❌ Failed to extract audio from ${originalInput.platform}. Please check the URL and try again.`\n    }\n  };\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -140,
+        -340
+      ],
+      "id": "802a28fc-98f7-4f74-b51c-36d6ff570266",
+      "name": "Result Processor"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        60,
+        -340
+      ],
+      "id": "99de50f1-a160-4904-98aa-fb34c4a277b7",
+      "name": "Success Check"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        340,
+        -360
+      ],
+      "id": "c6dc5873-89a5-47c3-8aab-14551af24bb5",
+      "name": "Success Notification",
+      "webhookId": "1a114b22-4b90-46dd-a283-912e0758af23",
+      "credentials": {
+        "telegramApi": {
+          "id": "T25o1IJ66SgTLCmw",
+          "name": "HassiAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        340,
+        -140
+      ],
+      "id": "319cadc8-0de2-44b5-aeb5-8d2a5195fde8",
+      "name": "Error Notification",
+      "webhookId": "eaa945de-2c72-4338-9050-6d3b461b320f",
+      "credentials": {
+        "telegramApi": {
+          "id": "T25o1IJ66SgTLCmw",
+          "name": "HassiAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# URL Processing\n\n🔗 Validate and categorize social media URLs",
+        "height": 260,
+        "width": 480,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1180,
+        -360
+      ],
+      "id": "195788e8-d506-4f37-b388-60a248b4741f",
+      "name": "#URLProcessing"
+    },
+    {
+      "parameters": {
+        "content": "# Audio Extraction\n\n🎵 Extract audio using external API service",
+        "height": 300,
+        "width": 540,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -460
+      ],
+      "id": "c8261b4e-671e-4f6f-ab0b-7c3825080a11",
+      "name": "#AudioExtraction"
+    },
+    {
+      "parameters": {
+        "content": "# Result Processing\n\n📊 Process results and handle errors",
+        "height": 260,
+        "width": 440,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        40,
+        -460
+      ],
+      "id": "3ed96ff9-14fc-4f78-81ca-89606a020445",
+      "name": "#ResultProcessing"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "URL Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "URL Processor": {
+      "main": [
+        [
+          {
+            "node": "URL Validator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "URL Validator": {
+      "main": [
+        [
+          {
+            "node": "Extraction Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invalid URL Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraction Notification": {
+      "main": [
+        [
+          {
+            "node": "Audio Extractor API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audio Extractor API": {
+      "main": [
+        [
+          {
+            "node": "Result Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Result Processor": {
+      "main": [
+        [
+          {
+            "node": "Success Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success Check": {
+      "main": [
+        [
+          {
+            "node": "Success Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9c9ad362-249a-4b35-9d94-cd9e83991f9c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d51eb297ec6c4d11c17253651670a5959a4fedeb006ead64cd58a47dbe8e7044"
+  },
+  "id": "CbMFlPFSx59LHPbr",
+  "tags": []
+}

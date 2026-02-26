@@ -1,0 +1,1244 @@
+{
+  "name": "Viral Video Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Chat Model & Output Parser",
+        "height": 540,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        480,
+        560
+      ],
+      "id": "b4754de9-04ed-4b8f-b24a-09583253d992",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "content": "# Upload",
+        "height": 260,
+        "width": 300
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        0
+      ],
+      "id": "9463988f-767e-48db-8cbd-4a6c34eeef85",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "# 5) Render Video",
+        "height": 260,
+        "width": 760,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        840
+      ],
+      "id": "204eabe1-562d-4155-995e-47152fbca4c0",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "content": "# 4) Generate Sound",
+        "height": 260,
+        "width": 440,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        740,
+        840
+      ],
+      "id": "d70d4b61-58ab-491b-a553-8ef22953b6bd",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "# 3) Generate Videos",
+        "height": 260,
+        "width": 1220,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        740,
+        560
+      ],
+      "id": "d733afed-a70c-442e-87dd-f31369b23fb9",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "# 2) Generate Images",
+        "height": 260,
+        "width": 1220,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        740,
+        280
+      ],
+      "id": "59693e5d-c0d8-40d7-8af0-e972a91bfc33",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "# 1) Create Story Prompts",
+        "height": 260,
+        "width": 1220,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        740,
+        0
+      ],
+      "id": "e5513cc0-91e6-4c0a-9951-6072a2633b84",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "amount": 80
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1580,
+        940
+      ],
+      "id": "09d6bfc0-2d49-4d1b-990d-e85a8ea63dab",
+      "name": "60 Seconds",
+      "webhookId": "01f09bb5-28d7-4abd-9209-5a5359ddadc1"
+    },
+    {
+      "parameters": {
+        "content": "# Instagram\n",
+        "height": 260,
+        "width": 300
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        280
+      ],
+      "id": "e2f8f2d3-cfed-49e2-ac28-fc06d115f99b",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-4.1",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        560,
+        920
+      ],
+      "id": "127a3d5e-130a-456d-ad6b-cbb59c0edb78",
+      "name": "GPT 4.1"
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1840,
+        940
+      ],
+      "id": "9728b671-c546-4c16-9db9-5e4e4c1c1283",
+      "name": "10 Seconds",
+      "webhookId": "b79593c9-387d-44fc-b96b-99f374b27e03"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        940
+      ],
+      "id": "f1833903-a259-42de-9290-04387d87bf15",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "04bd6607-3a27-49fe-b67a-8fa9dc0ac0a9",
+              "name": "Video",
+              "value": "={{ $('Get Videos').item.json.video.url }}",
+              "type": "string"
+            },
+            {
+              "id": "f04169da-679d-4009-9bc8-c4be2de53eed",
+              "name": "Audio",
+              "value": "={{ $('Upload to Drive').item.json.webContentLink }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1220,
+        940
+      ],
+      "id": "6f69f3d8-050e-4ad2-b5ba-ace6103f09a2",
+      "name": "Grab Elements"
+    },
+    {
+      "parameters": {
+        "content": "# YouTube\n",
+        "height": 260,
+        "width": 300
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        840
+      ],
+      "id": "b55e73e7-d04f-4eda-8615-f809ffffed23",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "# TikTok",
+        "height": 260,
+        "width": 300
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        560
+      ],
+      "id": "9fd190ad-f026-4084-b90c-953a4b621215",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://backend.blotato.com/v2/posts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"post\": {\n    \"target\": {\n      \"targetType\": \"youtube\",\n      \"title\": \"{{ $('Get Story').item.json.Category }} Reimagined\",\n      \"privacyStatus\": \"unlisted\",\n      \"shouldNotifySubscribers\": false\n    },\n    \"content\": {\n      \"text\": \"{{ $('Get Story').item.json.Category }} Reimagined\",\n      \"platform\": \"youtube\",\n      \"mediaUrls\": [\"{{ $json.url }}\"]\n    },\n    \"accountId\": \"ACCOUNT_ID\"\n  }\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2080,
+        940
+      ],
+      "id": "ba8c6df7-2f91-47ec-8d30-2893fec10750",
+      "name": "YouTube"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://backend.blotato.com/v2/posts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"post\": {\n    \"target\": {\n      \"targetType\": \"tiktok\",\n      \"isYourBrand\": false,\n      \"disabledDuet\": false,\n      \"privacyLevel\": \"PUBLIC_TO_EVERYONE\",\n      \"isAiGenerated\": true,\n      \"disabledStitch\": false,\n      \"disabledComments\": false,\n      \"isBrandedContent\": false\n    },\n    \"content\": {\n      \"text\": \"{{ $('Get Story').item.json.Category }} Reimagined\",\n      \"platform\": \"tiktok\",\n      \"mediaUrls\": [\"{{ $json.url }}\"]\n    },\n    \"accountId\": \"ACCOUNT_ID\"\n  }\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2080,
+        660
+      ],
+      "id": "47cd228e-eead-4383-8d9c-cba20bb90c50",
+      "name": "TikTok"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://backend.blotato.com/v2/posts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"post\": {\n    \"target\": {\n      \"targetType\": \"instagram\"\n    },\n    \"content\": {\n      \"text\": \"{{ $('Get Story').item.json.Category }} Reimagined\",\n      \"platform\": \"instagram\",\n      \"mediaUrls\": [\"{{ $json.url }}\"]\n    },\n    \"accountId\": \"ACCOUNT_ID\"\n  }\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2080,
+        380
+      ],
+      "id": "c79aeebf-16b0-4bc7-9d6c-d8475a01c52a",
+      "name": "Instagram"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://backend.blotato.com/v2/media",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.URL }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2140,
+        100
+      ],
+      "id": "7fdaa4aa-0ce4-440c-9c85-2549d0e2ef1e",
+      "name": "Upload to Blotato"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2020,
+        100
+      ],
+      "id": "2ee3c927-cf23-4510-aa15-4653c1d06c85",
+      "name": "Google Sheets"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1700,
+        940
+      ],
+      "id": "5c3a532e-1d2c-4236-82e5-812903e8dbcd",
+      "name": "Download Video",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.creatomate.com/v1/renders",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR API KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"template_id\": \"7a93dc0c-fa19-47d2-8be7-9bfde6ddae9f\",\n  \"modifications\": {\n    \"Video-1.source\": \"{{ $json.data[0].Video }}\",\n    \"Video-2.source\": \"{{ $json.data[1].Video }}\",\n    \"Video-3.source\": \"{{ $json.data[2].Video }}\",\n    \"Video-4.source\": \"{{ $json.data[3].Video }}\",\n    \"Audio-1.source\": \"{{ $json.data[0].Audio }}\",\n    \"Audio-2.source\": \"{{ $json.data[1].Audio }}\",\n    \"Audio-3.source\": \"{{ $json.data[2].Audio }}\",\n    \"Audio-4.source\": \"{{ $json.data[3].Audio }}\"\n  }\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1460,
+        940
+      ],
+      "id": "48574049-ca80-4e30-b830-d6d07c569586",
+      "name": "Render Video"
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone",
+            "allowFileDiscovery": true
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1040,
+        940
+      ],
+      "id": "1ab8b5ba-3bac-4590-a431-2fb1b4330ce9",
+      "name": "Share File"
+    },
+    {
+      "parameters": {
+        "name": "={{ $('Get Story').item.json.Category }}.mp3",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "root",
+          "cachedResultName": "/ (Root folder)"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        900,
+        940
+      ],
+      "id": "71a70863-c00d-4f7e-89cb-0a638db419b2",
+      "name": "Upload to Drive",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.elevenlabs.io/v1/sound-generation",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{ $('Prompt Generator').item.json.output.audio_prompt }}"
+            },
+            {
+              "name": "duration_seconds",
+              "value": "5"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        760,
+        940
+      ],
+      "id": "a7587c83-461c-4048-91c6-2e8af40e276b",
+      "name": "Generate Audio"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f9113c83-7b43-4dbe-830f-18a814c3f1f7",
+              "leftValue": "={{ $input.all().filter(item => item.json.status === \"IN_PROGRESS\" || item.json.status === \"IN_QUEUE\").length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1360,
+        380
+      ],
+      "id": "ad180b26-9bac-47b5-af81-b6db43e63ecd",
+      "name": "Images Done?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f9113c83-7b43-4dbe-830f-18a814c3f1f7",
+              "leftValue": "={{ $input.all().filter(item => item.json.status === \"IN_PROGRESS\" || item.json.status === \"IN_QUEUE\").length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1360,
+        660
+      ],
+      "id": "e35275eb-7a6e-4e90-a7b7-06994de0860c",
+      "name": "Videos Done?"
+    },
+    {
+      "parameters": {
+        "amount": 20
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1560,
+        660
+      ],
+      "id": "d1cf1275-1f13-4b9e-a907-5f31bd0beefa",
+      "name": "20 Seconds",
+      "webhookId": "3df950c4-9116-466b-99ac-6c768615d247"
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1560,
+        380
+      ],
+      "id": "6c9df6b9-09bb-445f-a64b-691be35bf0ab",
+      "name": "3 Seconds",
+      "webhookId": "0a175f88-ae3a-4f35-b7c6-a9ae6deab1d5"
+    },
+    {
+      "parameters": {
+        "url": "=https://queue.fal.run/fal-ai/kling-video/requests/{{ $json.request_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        660
+      ],
+      "id": "b0c8a77b-8ed8-472b-a44a-6dd1c8eafced",
+      "name": "Get Videos"
+    },
+    {
+      "parameters": {
+        "url": "=https://queue.fal.run/fal-ai/kling-video/requests/{{ $('Generate Videos').item.json.request_id }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1180,
+        660
+      ],
+      "id": "91c626b3-31f9-4543-8e3d-67f83928c23d",
+      "name": "Get Video Status"
+    },
+    {
+      "parameters": {
+        "unit": "minutes"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1000,
+        660
+      ],
+      "id": "844646f7-1e25-44e2-ba25-5c11d7f2efa9",
+      "name": "5 Minutes",
+      "webhookId": "c955252e-d3cb-47c8-a774-53d16c56a78b"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/kling-video/v1.6/pro/image-to-video",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "={{ $('Prompt Generator').item.json.output.video_prompt }}"
+            },
+            {
+              "name": "image_url",
+              "value": "={{ $json.images[0].url }}"
+            },
+            {
+              "name": "aspect_ratio",
+              "value": "9:16"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        820,
+        660
+      ],
+      "id": "75156c7d-b071-4c23-b5e5-480b7a127274",
+      "name": "Generate Videos"
+    },
+    {
+      "parameters": {
+        "url": "=https://queue.fal.run/fal-ai/flux-pro/requests/{{ $json.request_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        380
+      ],
+      "id": "abe30197-fad4-4f4b-82f2-94beb9b9bee7",
+      "name": "Get Images"
+    },
+    {
+      "parameters": {
+        "url": "=https://queue.fal.run/fal-ai/flux-pro/requests/{{ $json.request_id }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1180,
+        380
+      ],
+      "id": "b4f2c5fa-b22c-403a-be08-20f1b99f96ad",
+      "name": "Get Status"
+    },
+    {
+      "parameters": {
+        "amount": 12
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1000,
+        380
+      ],
+      "id": "da3e4c97-d41a-4876-beed-6758fbea0a64",
+      "name": "12 Seconds",
+      "webhookId": "1edecdff-d63e-4821-81a4-794545558e7e"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/flux-pro/v1.1-ultra",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "={{ $json.output.image_prompt }}"
+            },
+            {
+              "name": "aspect_ratio",
+              "value": "9:16"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        820,
+        380
+      ],
+      "id": "2555020d-fe48-46cb-89be-a1f393f752a0",
+      "name": "Generate Images"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"brand\": \"[Brand Name]\",\n  \"image_prompt\": \"[Detailed visual description]\",\n  \"video_prompt\": \"[5-second cinematic loop prompt]\",\n  \"audio_prompt\": \"[Immersive, brand-aligned music description]\"\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        560,
+        740
+      ],
+      "id": "bbf6759a-8761-43fc-bfe9-cbc329fa5c10",
+      "name": "Prompts"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "Brands",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1400,
+        80
+      ],
+      "id": "363e641a-52fd-40b4-a932-f3c0bff27785",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "62154da3-9df0-474a-86b0-87c687bbbb7a",
+              "name": "Brands",
+              "value": "=[\"{{ $json['Brand 1'] }}\",\"{{ $json['Brand 2'] }}\",\"{{ $json['Brand 3'] }}\",\"{{ $json['Brand 4'] }}\"]",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1220,
+        80
+      ],
+      "id": "878603b0-1d9d-4697-b7e3-406681d576c6",
+      "name": "Set Brands"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Get Story').item.json.Category }} Brand: {{ $json.Brands }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=# System Prompt: Reimagine Famous Brands as Tiny, Visually Satisfying Buildings\n\n## Overview\n\nYou are a **multimodal creative AI** that transforms **famous brands into tiny, hyper-realistic, visually satisfying digital resources**.\n\nYou will be given the name of a well-known brand. Your job is to output:\n\n1. A **highly detailed image prompt** that describes a **miniature architectural structure** inspired by the brand. The building should be **hyper-realistic**, include **tiny people**, and have a **satisfying, well-composed scene**.\n\n   - The shape of the building must be a **distinct, exaggerated form tied directly to the brand** — such as its most iconic **product**, **logo**, or **symbol**.\n   - The building must be clearly recognizable as a **functioning structure**, with **windows, a door, or visible interior space**.\n   - There should always be **tiny people** in or around it to show scale and life.\n\n2. A **cinematic video prompt** describing a **5-second loopable animation** where the building is the clear focal point. The scene should feature:\n   - A mostly still or gently rotating camera\n   - Dynamic motion from **tiny characters**, **machinery**, or **environmental elements** like steam, lights, or swaying plants\n   - A sense of cozy immersion and satisfying movement\n\n3. An **immersive audio prompt** that complements the video. This should be:\n   - Music only (no sound effects or voices)\n   - Deeply aligned with the brand’s **vibe and culture**\n   - Designed to feel **soothing, ambient, lo-fi, or emotionally satisfying**\n\nIt is **critical** that the brand is **immediately recognizable** from the visual. That means the **logo**, **brand colors**, or **product forms** must be prominently integrated into the building design. The entire experience should feel **visually rich, emotionally cozy, and creatively delightful**.\n\n---\n\n## Output Format\n\nFor each brand, respond with:\n\n- **Image Prompt:**  \n- **Video Prompt:**  \n- **Audio Prompt:**  \n\n---\n\n## Example Output (Brand: Nike)\n\n**Image Prompt:**  \nA hyperrealistic tiny building shaped like a Nike Air Max sneaker, converted into a miniature sports center. The giant shoe structure has glowing mesh windows on the sides and a working front door embedded in the tongue. A massive white swoosh glows on both sides of the building. Miniature people in athletic wear jog on a looped path that circles the building, while others stretch on yoga mats on a rooftop patio. Stacks of Nike shoeboxes are used as seating and signage around the structure.\n\n**Video Prompt:**  \nA slow 5-second cinematic pan from right to left at sunset. Tiny joggers move rhythmically on the looping track while others pass in and out of the glowing doorway. Steam gently rises from rooftop vents, the swoosh lights pulse softly, and trees rustle in the background. The scene feels active yet serene.\n\n**Audio Prompt:**  \nA chill, motivational lo-fi beat featuring layered synths, soft hi-hats, and deep ambient bass. The rhythm is smooth and repetitive, giving off a cool, athletic vibe like a soundtrack to an early morning workout.\n\n---\n\nEach scene you generate should be **hyper-recognizable, richly imaginative, and deeply satisfying.** The prompts must work together to create a miniature branded world that viewers will want to step into.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        1600,
+        80
+      ],
+      "id": "c5d54608-c294-4afc-ba26-414534d3ca94",
+      "name": "Prompt Generator"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1040,
+        80
+      ],
+      "id": "78c6e9e4-7c43-46ca-afce-34ed7262b377",
+      "name": "Get Story"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        820,
+        80
+      ],
+      "id": "9217777c-9b98-4161-ba8e-240504fd15fb",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "content": "# 🛠️ SETUP GUIDE  \n## **Author:** [Nate Herk](https://www.youtube.com/@nateherk)\n\n### 1. Make a copy of the [Google Sheet Template](https://docs.google.com/spreadsheets/d/1cGcCC8JnfPJu5TCAMFcQiMMPxuEENiauS_h_CvC2Nqc/edit?usp=sharing) and connect it to your n8n workflow.  \n### 2. Connect your [OpenRouter](https://openrouter.ai/) API key.  \n### 3. Connect your [FAL AI](https://fal.ai/) API key.  \n### 4. Connect your [Eleven Labs](https://try.elevenlabs.io/bzis5j24bluk) API key.  \n### 5. Connect to your Google Drive account.  \n### 6. Create your video template in [Creatomate](https://creatomate.com/). You can find the required source code [here](https://docs.google.com/document/d/1I3Rtm7r6zyIkZXTJS4nRjZsCabmREDHfz6iXfiVfXh4/edit?usp=sharing).  \n### 7. Paste your Creatomate **template ID** into the \"Render Video\" HTTP Request node.  \n### 8. Connect your Creatomate API key.  \n### 9. Connect your [Blotato](https://blotato.com/?ref=nate) API key *(use promo code **NATE30** for 30% off for 6 months)*.  \n### 10. Connect your **account IDs** to the Instagram node, TikTok node, and YouTube node.\n",
+        "height": 540,
+        "width": 720
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "930a2104-e358-42c6-a06d-13a4a3af5e3f",
+      "name": "Sticky Note10"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "60 Seconds": {
+      "main": [
+        [
+          {
+            "node": "Download Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT 4.1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Prompt Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10 Seconds": {
+      "main": [
+        [
+          {
+            "node": "Download Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Render Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grab Elements": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Blotato": {
+      "main": [
+        [
+          {
+            "node": "YouTube",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Instagram",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "TikTok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Upload to Blotato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Video": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "10 Seconds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Render Video": {
+      "main": [
+        [
+          {
+            "node": "60 Seconds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Share File": {
+      "main": [
+        [
+          {
+            "node": "Grab Elements",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Drive": {
+      "main": [
+        [
+          {
+            "node": "Share File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Audio": {
+      "main": [
+        [
+          {
+            "node": "Upload to Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Images Done?": {
+      "main": [
+        [
+          {
+            "node": "Get Images",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "3 Seconds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Videos Done?": {
+      "main": [
+        [
+          {
+            "node": "Get Videos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "20 Seconds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "20 Seconds": {
+      "main": [
+        [
+          {
+            "node": "Get Video Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3 Seconds": {
+      "main": [
+        [
+          {
+            "node": "Get Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Videos": {
+      "main": [
+        [
+          {
+            "node": "Generate Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Video Status": {
+      "main": [
+        [
+          {
+            "node": "Videos Done?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Get Video Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Videos": {
+      "main": [
+        [
+          {
+            "node": "5 Minutes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Images": {
+      "main": [
+        [
+          {
+            "node": "Generate Videos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Status": {
+      "main": [
+        [
+          {
+            "node": "Images Done?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "12 Seconds": {
+      "main": [
+        [
+          {
+            "node": "Get Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Images": {
+      "main": [
+        [
+          {
+            "node": "12 Seconds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prompts": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Prompt Generator",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Prompt Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Brands": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prompt Generator": {
+      "main": [
+        [
+          {
+            "node": "Generate Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Story": {
+      "main": [
+        [
+          {
+            "node": "Set Brands",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Story",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f84f01e4-fdcf-491a-981c-3f8521558163",
+  "meta": {
+    "instanceId": "d51eb297ec6c4d11c17253651670a5959a4fedeb006ead64cd58a47dbe8e7044"
+  },
+  "id": "kVSdbmGDe1Wrxfqa",
+  "tags": []
+}
